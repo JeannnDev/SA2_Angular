@@ -1,3 +1,7 @@
+@if (loadingService.isLoading()) {
+<po-loading-overlay [p-screen-lock]="true" p-text="Carregando"></po-loading-overlay>
+}
+
 <div class="po-wrapper">
     <po-menu p-logo="logo.svg" [p-menus]="menus"></po-menu>
     <router-outlet></router-outlet>

@@ -1,5 +1,6 @@
-import { Component, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, signal, OnInit, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { LoadingService } from '../../services/loading.service';
 import { FormsModule } from '@angular/forms';
 
 import {
@@ -115,13 +116,19 @@ export class ConsultaDocumento implements OnInit {
 
     historico = signal<ResultadoConsulta[]>([]);
 
-    constructor(private poNotification: PoNotificationService) { }
+    constructor(
+        private poNotification: PoNotificationService,
+        private loadingService: LoadingService,
+        @Inject(PLATFORM_ID) private platformId: Object
+    ) { }
 
     ngOnInit() {
-        // Simula o tempo de carregamento inicial ao abrir a aba
-        setTimeout(() => {
-            this.carregandoTela = false;
-        }, 1000);
+        if (isPlatformBrowser(this.platformId)) {
+            // Simula o tempo de carregamento inicial (ajuste para seu banco de dados)
+            setTimeout(() => {
+                this.loadingService.hide(); // Só destrava agora que terminou tudo!
+            }, 800);
+        }
     }
 
     /* ------------------------------------------------------------------ *

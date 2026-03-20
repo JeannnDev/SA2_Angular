@@ -1,5 +1,6 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { LoadingService } from '../../services/loading.service';
 import { FormsModule } from '@angular/forms';
 import {
     PoPageModule,
@@ -26,7 +27,7 @@ import {
     styleUrls: ['./fornecedor.css']
 })
 export class Fornecedor implements OnInit {
-    isLoading: boolean = false;
+    isLoading: boolean = true;
     fornecedor: any = {};
 
     pageActions: Array<PoPageAction> = [
@@ -43,15 +44,19 @@ export class Fornecedor implements OnInit {
         { property: 'endereco', label: 'Endereço', gridColumns: 12 }
     ];
 
-    constructor(private notification: PoNotificationService) { }
+    constructor(
+        private notification: PoNotificationService,
+        private loadingService: LoadingService,
+        @Inject(PLATFORM_ID) private platformId: Object
+    ) { }
 
     ngOnInit() {
-        this.isLoading = true; // Liga o loading quando a página abre
-
-        // Simula o tempo de carregar os dados num banco (ex: 1 segundo)
-        setTimeout(() => {
-            this.isLoading = false; // Desliga o loading
-        }, 1000);
+        if (isPlatformBrowser(this.platformId)) {
+            // Simula o tempo de carregar os dados reais (ajuste conforme seu banco)
+            setTimeout(() => {
+                this.loadingService.hide(); // Só fecha quando os dados "chegarem"
+            }, 600);
+        }
     }
 
     save() {

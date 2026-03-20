@@ -1,15 +1,35 @@
 import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-import { PoMenuModule, PoMenuItem, PoToolbarModule } from '@po-ui/ng-components';
+import { RouterOutlet, Router, NavigationStart, NavigationEnd, NavigationCancel, NavigationError } from '@angular/router';
+import { PoMenuModule, PoMenuItem, PoToolbarModule, PoLoadingModule } from '@po-ui/ng-components';
+import { CommonModule } from '@angular/common';
+import { LoadingService } from './services/loading.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, PoMenuModule, PoToolbarModule, PoMenuModule],
+  standalone: true,
+  imports: [CommonModule, RouterOutlet, PoMenuModule, PoToolbarModule, PoLoadingModule],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
 export class App {
   protected readonly title = signal('Angular_tst');
+  constructor(
+    private router: Router,
+    public loadingService: LoadingService
+  ) {
+    this.router.events.subscribe(event => {
+      if (event instanceof NavigationStart) {
+        this.loadingService.show(); // Inicia o bloqueio da tela
+      } else if (
+        event instanceof NavigationEnd ||
+        event instanceof NavigationCancel ||
+        event instanceof NavigationError
+      ) {
+        // Fallback: Se o componente não avisar que terminou, liberamos em 1.5s
+        setTimeout(() => this.loadingService.hide(), 1500);
+      }
+    });
+  }
 
 
   readonly menus: Array<PoMenuItem> =
