@@ -12,7 +12,7 @@ export class App {
   protected readonly title = signal('Angular_tst');
 
   readonly menus: Array<PoMenuItem> = [
-    { label: 'Consulta', link: '/consulta', icon: 'an an-magnifying-glass' },
-    { label: 'Fornecedor', link: '/fornecedor', icon: 'an an-identification-card' }
+    { label: 'Consulta fornecedor', link: '/consulta', icon: 'an an-magnifying-glass' },
+    { label: 'Cadastro fornecedor', link: '/fornecedor', icon: 'an an-identification-card' }
   ];
 }
