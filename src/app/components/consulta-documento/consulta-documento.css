@@ -1,0 +1,18 @@
+.consulta-acoes {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.consulta-loading {
+  position: relative;
+  min-height: 80px;
+}
+
+.resultado-situacao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
