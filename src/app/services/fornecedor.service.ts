@@ -97,16 +97,25 @@ export class FornecedorService {
   /**
    * Cria um novo fornecedor (POST)
    */
+  /**
+   * Cria um novo fornecedor (POST/INCLUIR) - Ex: /WsFornecedor/INCLUIR/12345678901
+   */
   async create(fornecedor: Fornecedor): Promise<void> {
     this.loadingSignal.set(true);
-    const url = `${this.resource}/POST`;
+    const doc = (fornecedor.A2_CGC || '').replace(/\D/g, ''); // Limpa pontuação (somente números)
+    
+    // O POST/INCLUIR agora também usa o CGC como query parameter
+    const url = `${this.resource}/INCLUIR/${doc ? `?cCgc=${doc}` : ''}`;
     const body = this.mapToAdvpl(fornecedor);
+    
+    console.log('--- ENVIANDO PARA O PROTHEUS (INCLUIR) ---');
+    console.log('URL:', url);
+    console.log('PAYLOAD:', JSON.stringify(body, null, 2));
     
     try {
       await lastValueFrom(
         this.http.post(url, body, { headers: this.getHeaders(), responseType: 'text' })
       );
-      await this.getAll();
     } catch (error: any) {
       this.extractError(error);
       throw error;
@@ -116,18 +125,24 @@ export class FornecedorService {
   }
 
   /**
-   * Altera (PUT)
+   * Altera (PUT/ALTERAR) - Ex: /WsFornecedor/ALTERAR?cCgc=...
    */
   async update(fornecedor: Fornecedor): Promise<void> {
     this.loadingSignal.set(true);
-    const url = `${this.resource}/PUT${fornecedor.A2_CGC ? `?cCgc=${fornecedor.A2_CGC}` : ''}`;
+    const doc = (fornecedor.A2_CGC || '').replace(/\D/g, ''); // Limpa pontuação
+    
+    // O ALTERAR usa o CGC como parâmetro de querystring: ?cCgc={doc}
+    const url = `${this.resource}/ALTERAR${doc ? `?cCgc=${doc}` : ''}`;
     const body = this.mapToAdvpl(fornecedor);
     
+    console.log('--- ENVIANDO PARA O PROTHEUS (ALTERAR) ---');
+    console.log('URL:', url);
+    console.log('PAYLOAD:', JSON.stringify(body, null, 2));
+
     try {
       await lastValueFrom(
         this.http.put(url, body, { headers: this.getHeaders(), responseType: 'text' })
       );
-      await this.getAll();
     } catch (error: any) {
       this.extractError(error);
       throw error;
@@ -141,7 +156,8 @@ export class FornecedorService {
    */
   async delete(cCgc: string): Promise<void> {
     this.loadingSignal.set(true);
-    const url = `${this.resource}/DELETE${cCgc ? `?cCgc=${cCgc}` : ''}`;
+    const doc = cCgc.replace(/\D/g, '');
+    const url = `${this.resource}/DELETE${doc ? `?cCgc=${doc}` : ''}`;
     
     try {
       await lastValueFrom(
@@ -160,9 +176,7 @@ export class FornecedorService {
    * Centraliza a extração de mensagens de erro e limpeza de JSONs concatenados
    */
   private extractError(error: any) {
-    // Procura o texto da resposta no corpo do erro (usando responseType: 'text')
     let raw = "";
-
     if (typeof error.error === 'string') {
       raw = error.error;
     } else if (error.error?.response) {
@@ -172,15 +186,11 @@ export class FornecedorService {
     }
 
     let msg = "";
-
     if (raw) {
-      // Regex que pega TUDO que vem antes do primeiro caractere {
-      // Isso corta fora qualquer JSON que o Protheus anixe à mensagem
       const match = raw.match(/^([^{]+)/);
       msg = match ? match[1].trim() : raw.trim();
     }
 
-    // Filtra mensagens genéricas de sistema (em inglês) para não "poluir" o usuário
     const isGeneric = 
       msg.toLowerCase().includes('internal server error') || 
       msg.toLowerCase().includes('http failure response') ||
@@ -196,11 +206,14 @@ export class FornecedorService {
   // -- AUXILIARES DE MAPEAMENTO --
 
   private mapToAdvpl(fornecedor: Fornecedor): AdvplRequest {
-    const data: AdvplField[] = Object.entries(fornecedor).map(([key, value]) => ({
-      campo: key,
-      tipo: typeof value === 'number' ? 'N' : 'C',
-      valor: String(value)
-    }));
+    // Lista de campos que vão no corpo (excluindo o CGC que vai na URL)
+    const data: AdvplField[] = Object.entries(fornecedor)
+      .filter(([key]) => key !== 'A2_CGC') // Remove o CGC dos dados de envio
+      .map(([key, value]) => ({
+        campo: key,
+        tipo: typeof value === 'number' ? 'N' : 'C',
+        valor: String(value)
+      }));
     return { Data: data };
   }
 

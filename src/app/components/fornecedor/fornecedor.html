@@ -9,32 +9,7 @@
     </po-dynamic-form>
   </div>
 
-  <po-divider p-label="Fornecedores Cadastrados (Advpl)"></po-divider>
   
   <po-loading-overlay *ngIf="isLoading()" p-text="Acessando o Protheus..."></po-loading-overlay>
-
-  <!-- Listagem vinda do WebService -->
-  <po-list-view
-    [p-items]="fornecedores()"
-    p-property-title="A2_NOME"
-    p-property-description="A2_END"
-    [p-hide-select-all]="true">
-    
-    <ng-template po-list-view-content-template let-item>
-      <div class="po-row">
-        <div class="po-md-2"><b>Cód:</b> {{ item.A2_COD }}</div>
-        <div class="po-md-2"><b>Loja:</b> {{ item.A2_LOJA }}</div>
-        <div class="po-md-4"><b>Fantasia:</b> {{ item.A2_NREDUZ }}</div>
-        <div class="po-md-4"><b>Cidade:</b> {{ item.A2_MUN }} - {{ item.A2_EST }}</div>
-      </div>
-    </ng-template>
-
-    <ng-template po-list-view-actions-template let-item>
-      <div class="po-row flex gap-2">
-         <po-button p-label="Editar" (p-click)="prepareEdit(item)" p-small p-icon="po-icon-edit"></po-button>
-         <po-button p-label="Excluir" (p-click)="delete(item)" p-small p-icon="po-icon-delete" [p-danger]="true"></po-button>
-      </div>
-    </ng-template>
-  </po-list-view>
 
 </po-page-default>
