@@ -50,67 +50,42 @@ export class FornecedorComponent {
 
     fields: PoDynamicFormField[] = [
         { 
-            property: 'A2_COD', 
-            label: 'Código', 
-            gridColumns: 2, 
-            required: true, 
-            maxLength: 6,
-            placeholder: 'Ex: 000001'
+            property: 'A2_COD', label: 'Código', gridColumns: 2, required: true, maxLength: 6,
+            placeholder: '000001'
         },
         { 
-            property: 'A2_LOJA', 
-            label: 'Loja', 
-            gridColumns: 2, 
-            required: true, 
-            maxLength: 2,
+            property: 'A2_LOJA', label: 'Loja', gridColumns: 2, required: true, maxLength: 2,
             placeholder: '01'
         },
         { 
-            property: 'A2_CGC', 
-            label: 'CPF / CNPJ', 
-            gridColumns: 4, 
-            required: true, 
+            property: 'A2_CGC', label: 'CPF / CNPJ', gridColumns: 4, required: true, 
             mask: '99.999.999/9999-99' 
         },
-        { 
-            property: 'A2_NOME', 
-            label: 'Nome / Razão Social', 
-            gridColumns: 8, 
-            required: true,
-            maxLength: 40
-        },
-        { 
-            property: 'A2_NREDUZ', 
-            label: 'Nome Fantasia', 
-            gridColumns: 4,
-            maxLength: 20
-        },
         {
-            property: 'A2_TIPO', 
-            label: 'Tipo', 
-            gridColumns: 2, 
+            property: 'A2_TIPO', label: 'Tipo', gridColumns: 4, 
             options: [
                 { label: 'Jurídica', value: 'J' },
                 { label: 'Física', value: 'F' }
             ]
         },
         { 
-            property: 'A2_MUN', 
-            label: 'Município', 
-            gridColumns: 10,
-            maxLength: 15
+            property: 'A2_NOME', label: 'Nome / Razão Social', gridColumns: 7, required: true,
+            maxLength: 40, divider: 'Dados Cadastrais'
         },
         { 
-            property: 'A2_EST', 
-            label: 'Estado (UF)', 
-            gridColumns: 2,
-            maxLength: 2,
-            placeholder: 'SP'
+            property: 'A2_NREDUZ', label: 'Nome Fantasia', gridColumns: 5,
+            maxLength: 20
         },
         { 
-            property: 'A2_END', 
-            label: 'Endereço', 
-            gridColumns: 12,
+            property: 'A2_MUN', label: 'Município', gridColumns: 10,
+            maxLength: 15, divider: 'Localização'
+        },
+        { 
+            property: 'A2_EST', label: 'Estado (UF)', gridColumns: 2,
+            maxLength: 2, placeholder: 'SP'
+        },
+        { 
+            property: 'A2_END', label: 'Endereço Completo', gridColumns: 12,
             maxLength: 40
         }
     ];
