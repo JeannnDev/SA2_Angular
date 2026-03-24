@@ -19,6 +19,7 @@
 WSRESTFUL WsFornecedor DESCRIPTION "Servico para cadastro de Fornecedores." FORMAT "application/json"
 
     WSDATA filial AS String
+    WSDATA cCgc   AS String
 
     WSMETHOD POST   DESCRIPTION "Inclusao de cadastro de Fornecedores." WSSYNTAX "/WsFornecedor/INCLUIR/{CGC}"
     WSMETHOD PUT    DESCRIPTION "Alteracao de cadastro de Fornecedores." WSSYNTAX "/WsFornecedor/ALTERAR/{CGC}"
@@ -51,21 +52,21 @@ WSMETHOD POST WSRECEIVE RECEIVE WSSERVICE WsFornecedor
 
     ::SetContentType("application/json")
 
-    If Len(::aURLParms) < 1
+    If Len(::cCgc) < 1
         U_SetErro("CGC não informado.")
         Return .T.
     EndIf
 
-    cCgc := PadR(::aURLParms[1], TamSX3("A2_CGC")[1], " ")
+    cCgc := PadR(::cCgc, TamSX3("A2_CGC")[1], " ")
 
     cJson := Self:GetContent()
 
     If FWJsonDeserialize(cJson, @oJson)
 
-        RpcClearEnv()
-        RpcSetType(3)
+        // RpcClearEnv()
+        // RpcSetType(3)
 
-        If RpcSetEnv("01", ::FILIAL, Nil, Nil, "COM", Nil, {"SA2","CC2"})
+        // If RpcSetEnv("01", ::FILIAL, Nil, Nil, "COM", Nil, {"SA2","CC2"})
 
             CC2->(DbSetOrder(4))
             SA2->(DbSetOrder(3))
@@ -117,10 +118,10 @@ WSMETHOD POST WSRECEIVE RECEIVE WSSERVICE WsFornecedor
 
                 EndIf
 
-            EndIf
+        //     EndIf
 
-        Else
-            U_SetErro("Não foi possível conectar na empresa e filial informados.")
+        // Else
+        //     U_SetErro("Não foi possível conectar na empresa e filial informados.")
         EndIf
 
     Else
@@ -159,7 +160,7 @@ WSMETHOD GET WSRECEIVE RECEIVE WSSERVICE WsFornecedor
 
         SA2->(DbSetOrder(3))
 
-        cCgc 	:= ::aURLParms[1]
+        cCgc 	:= ::cCgc
         cCgc 	:= PadR(cCgc, TamSX3("A2_CGC")[1]," ")
 
         If SA2->(DbSeek(xFilial("SA2") + cCgc ))
@@ -227,21 +228,21 @@ WSMETHOD PUT WSRECEIVE RECEIVE WSSERVICE WsFornecedor
 
     ::SetContentType("application/json")
 
-    If Len(::aURLParms) < 1
+    If Len(::cCgc) < 1
         U_SetErro("CGC não informado.")
         Return .T.
     EndIf
 
-    cCgc := PadR(::aURLParms[1], TamSX3("A2_CGC")[1], " ")
+    cCgc := PadR(::cCgc, TamSX3("A2_CGC")[1], " ")
 
     cJson := Self:GetContent()
 
     If FWJsonDeserialize(cJson, @oJson)
 
-        RpcClearEnv()
-        RpcSetType(3)
+        // RpcClearEnv()
+        // RpcSetType(3)
 
-        If RpcSetEnv("01", ::FILIAL, Nil, Nil, "COM", Nil, {"SA2","CC2"})
+        // If RpcSetEnv("01", ::FILIAL, Nil, Nil, "COM", Nil, {"SA2","CC2"})
 
             CC2->(DbSetOrder(4))
             SA2->(DbSetOrder(3))
@@ -297,10 +298,10 @@ WSMETHOD PUT WSRECEIVE RECEIVE WSSERVICE WsFornecedor
 
                 EndIf
 
-            EndIf
+        //     EndIf
 
-        Else
-            U_SetErro("Não foi possível conectar na empresa e filial informados.")
+        // Else
+        //     U_SetErro("Não foi possível conectar na empresa e filial informados.")
         EndIf
 
     Else
@@ -333,17 +334,17 @@ WSMETHOD DELETE WSRECEIVE RECEIVE WSSERVICE WsFornecedor
 
     ::SetContentType("application/json")
 
-    If Len(::aURLParms) < 1
+    If Len(::cCgc) < 1
         U_SetErro("CGC não informado.")
         Return .T.
     EndIf
 
-    cCgc := PadR(::aURLParms[1], TamSX3("A2_CGC")[1], " ")
+    cCgc := PadR(::cCgc, TamSX3("A2_CGC")[1], " ")
 
-    RpcClearEnv()
-    RpcSetType(3)
+    // RpcClearEnv()
+    // RpcSetType(3)
 
-    If RpcSetEnv("01", ::FILIAL, Nil, Nil, "COM", Nil, {"SA2"})
+    // If RpcSetEnv("01", ::FILIAL, Nil, Nil, "COM", Nil, {"SA2"})
 
         SA2->(DbSetOrder(3))
 
@@ -365,9 +366,9 @@ WSMETHOD DELETE WSRECEIVE RECEIVE WSSERVICE WsFornecedor
 
         EndIf
 
-    Else
-        U_SetErro("Não foi possível conectar na empresa e filial informados.")
-    EndIf
+    // Else
+    //     U_SetErro("Não foi possível conectar na empresa e filial informados.")
+    // EndIf
 
     ::SetResponse(oIntegracao:toJson())
 

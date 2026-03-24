@@ -73,6 +73,46 @@ User Function MT020MVC(aCampos, nOper)
 
 Return aRet
 
+/**-------------------------------------------------------------------------------------------------------------------------------------**/
+/** FUNCAO        : ConvT                                                                                                               **/
+/** DESCRICAO     : Converte os tipos de dados para o tipo solicitado. Utilizada para conversão dos parâmetros recebidos no webservice. **/
+/**-------------------------------------------------------------------------------------------------------------------------------------**/
+
+User Function ConvT(cTipo, xValor)
+
+	Local xValConv := xValor
+
+	Do Case
+		Case cTipo == "D"
+			
+			If ValType(xValor) == "C"
+				
+				xValConv := CToD(xValor)
+
+				If Empty(xValConv)
+					xValConv := SToD(xValor)
+				EndIf
+
+			EndIf
+			
+		Case cTipo == "N"
+			
+			If ValType(xValor) == "C"
+				xValConv := Val(xValor)
+			EndIf
+
+		Case cTipo == "C"
+			
+			If ValType(xValor) == "N"
+				xValConv := cValToChar(xValor)
+			EndIf
+
+			xValConv := Upper(AllTrim(FwNoAccent(DecodeUTF8(xValConv))))
+
+	EndCase
+
+Return xValConv
+
 
 
 /**-----------------------------------------------------------------------------------------------------------------**/
