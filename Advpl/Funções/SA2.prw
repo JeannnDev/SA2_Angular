@@ -23,6 +23,7 @@ User Function MT020MVC(aCampos, nOper)
     Local aRet          := {.F., ""}
     Local aErro         := {}
     Local lOk           := .F.
+    Local nX            := 0
 
     Default nOper := 3 // 3=Incluir | 4=Alterar | 5=Excluir
 
@@ -57,11 +58,12 @@ User Function MT020MVC(aCampos, nOper)
 
         If ValType(aErro) == "A"
 
-            For Each cErro In aErro
-                If ValType(cErro) == "C"
-                    aRet[2] += cErro + ENTER
+
+           For nX := 1 To Len(aErro)
+                If ValType(aErro[nX]) == "C"
+                    aRet[2] := aRet[2] + aErro[nX] + ENTER
                 EndIf
-            Next
+            Next nX
 
         Else
             aRet[2] := "Erro ao processar fornecedor."
