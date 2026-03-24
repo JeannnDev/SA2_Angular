@@ -2,6 +2,8 @@ import { Component, signal, OnInit, PLATFORM_ID, inject } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { LoadingService } from '../../services/loading.service';
 import { FormsModule } from '@angular/forms';
+import { FornecedorService } from '../../services/fornecedor.service';
+import { Fornecedor } from '../../models/fornecedor.model';
 
 import {
     PoButtonModule,
@@ -147,20 +149,22 @@ export class ConsultaDocumento implements OnInit {
         return tipo === 'cpf' ? numeros.length === 11 : numeros.length === 14;
     }
 
+    private fornecedorService = inject(FornecedorService);
+
     /* ------------------------------------------------------------------ *
-     * Consulta (mock – substitua por chamada ao seu serviço real)        *
+     * Consulta (Real – Consumindo WebService Advpl)                      *
      * ------------------------------------------------------------------ */
-    consultar() {
-        const doc = this.documento;
+    async consultar() {
+        const doc = this.documento.replace(/\D/g, ''); // Remove máscara para consulta
         const tipo = this.tipoDocumento;
 
         if (!doc || doc.trim() === '') {
-            this.erroDocumento = `Informe o ${this.labelDocumento}.`;
+            this.poNotification.warning(`Informe o ${this.labelDocumento}.`);
             return;
         }
 
         if (!this.validarDocumento(doc, tipo)) {
-            this.erroDocumento = `${this.labelDocumento} inválido. Verifique o número informado.`;
+            this.erroDocumento = `${this.labelDocumento} inválido.`;
             return;
         }
 
@@ -168,45 +172,50 @@ export class ConsultaDocumento implements OnInit {
         this.resultado.set(null);
         this.carregando.set(true);
 
-        // ── Mock assíncrono – substitua pelo HttpClient ──────────────────
-        setTimeout(() => {
-            this.carregando.set(false);
+        try {
+            // Chama o WebService passando o CPF/CNPJ limpo
+            await this.fornecedorService.getAll(doc);
+            
+            // Pega o primeiro resultado da lista (geralmente consulta por CGC retorna 1)
+            const list: Fornecedor[] = this.fornecedorService.fornecedores();
+            
+            if (list.length > 0) {
+                // ... ( mapeamento já existente)
+                const item = list[0];
+                const dados: ResultadoConsulta = {
+                    documento: item.A2_CGC || doc,
+                    tipo: tipo,
+                    nome: item.A2_NOME || 'Não Identificado',
+                    situacao: 'Ativa',
+                    municipio: item.A2_MUN,
+                    uf: item.A2_EST,
+                    email: item.A2_EMAIL || '',
+                    telefone: item.A2_TEL || ''
+                };
 
-            const mockCpf: ResultadoConsulta = {
-                documento: doc,
-                tipo: 'cpf',
-                nome: 'João da Silva Souza',
-                situacao: 'Regular',
-                municipio: 'São Paulo',
-                uf: 'SP',
-                email: 'joao.silva@email.com',
-                telefone: '(11) 9 8765-4321',
-            };
+                this.resultado.set(dados);
 
-            const mockCnpj: ResultadoConsulta = {
-                documento: doc,
-                tipo: 'cnpj',
-                nome: 'EMPRESA EXEMPLO LTDA',
-                situacao: 'Ativa',
-                dataAbertura: '15/03/2010',
-                municipio: 'Curitiba',
-                uf: 'PR',
-                email: 'contato@empresa.com.br',
-                telefone: '(41) 3333-4444',
-                atividade: 'Desenvolvimento de Software',
-                naturezaJuridica: 'Sociedade Empresária Limitada',
-            };
+                const existe = this.historico().some((h) => h.documento === dados.documento);
+                if (!existe) {
+                    this.historico.update((l) => [dados, ...l]);
+                }
 
-            const dados = tipo === 'cpf' ? mockCpf : mockCnpj;
-            this.resultado.set(dados);
-
-            const existe = this.historico().some((h) => h.documento === dados.documento);
-            if (!existe) {
-                this.historico.update((list) => [dados, ...list]);
+                this.poNotification.success(`Consulta realizada com sucesso!`);
+            } else {
+                // Aqui capturamos a mensagem correta que o Protheus enviou
+                const msg = this.fornecedorService.message() || 'Nenhum fornecedor encontrado no Protheus.';
+                this.poNotification.error(msg);
             }
-
-            this.poNotification.success(`${this.labelDocumento} consultado com sucesso!`);
-        }, 1500);
+        } catch (error) {
+            const serviceMsg = this.fornecedorService.message();
+            if (serviceMsg) {
+                this.poNotification.error(serviceMsg);
+            } else {
+                this.poNotification.error('Erro ao comunicar com o servidor Protheus.');
+            }
+        } finally {
+            this.carregando.set(false);
+        }
     }
 
     limpar() {
