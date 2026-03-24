@@ -18,6 +18,7 @@ import {
     PoInfoModule,
     PoContainerModule,
     PoRadioGroupModule,
+    PoDynamicModule,
 } from '@po-ui/ng-components';
 
 export type TipoDocumento = 'cpf' | 'cnpj';
@@ -51,6 +52,7 @@ export interface ResultadoConsulta {
         PoInfoModule,
         PoContainerModule,
         PoRadioGroupModule,
+        PoDynamicModule,
     ],
     templateUrl: './consulta-documento.html',
     styleUrl: './consulta-documento.css',
@@ -109,15 +111,27 @@ export class ConsultaDocumento implements OnInit {
     };
 
     /* ------------------------------------------------------------------ *
-     * Colunas da tabela de histórico                                      *
+     * Campos de visualização (Dynamic View)                              *
      * ------------------------------------------------------------------ */
+    public getViewFields(): any[] {
+        return [
+            { property: 'documento', label: this.labelDocumento, gridColumns: 3 },
+            { property: 'nome', label: this.tipoDocumento === 'cpf' ? 'Nome' : 'Razão Social', gridColumns: 9 },
+            { property: 'situacao', label: 'Situação', gridColumns: 3, tag: true, color: (v: string) => this.corSituacao(v) },
+            { property: 'municipio', label: 'Município', gridColumns: 5 },
+            { property: 'uf', label: 'UF', gridColumns: 4 },
+            { property: 'email', label: 'E-mail', gridColumns: 6, divider: 'Contatos Próximos' },
+            { property: 'telefone', label: 'Telefone', gridColumns: 6 }
+        ];
+    }
+
     colunas = [
-        { property: 'documento', label: 'Documento', type: 'string' },
-        { property: 'tipo', label: 'Tipo', type: 'string' },
-        { property: 'nome', label: 'Nome / Razão Social', type: 'string' },
-        { property: 'situacao', label: 'Situação', type: 'string' },
-        { property: 'municipio', label: 'Município', type: 'string' },
-        { property: 'uf', label: 'UF', type: 'string' },
+        { property: 'documento', label: 'Documento' },
+        { property: 'tipo', label: 'Tipo' },
+        { property: 'nome', label: 'Nome / Razão Social' },
+        { property: 'situacao', label: 'Situação' },
+        { property: 'municipio', label: 'Município' },
+        { property: 'uf', label: 'UF' },
     ];
 
     historico = signal<ResultadoConsulta[]>([]);

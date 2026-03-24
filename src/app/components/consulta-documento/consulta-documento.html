@@ -36,69 +36,12 @@
     @if (resultado()) {
     <po-container [p-title]="'Resultado da Consulta — ' + labelDocumento" class="po-mt-2">
 
-        <!-- Situação com tag colorida -->
-        <div class="po-row po-mt-1">
-            <div class="po-col-12 resultado-situacao">
-                <span class="po-font-subtitle">Situação:</span>
-                <po-tag [p-value]="resultado()!.situacao" [p-type]="corSituacao(resultado()!.situacao)"></po-tag>
-            </div>
+        <div class="po-mt-2">
+            <po-dynamic-view 
+                [p-fields]="getViewFields()" 
+                [p-value]="resultado()!">
+            </po-dynamic-view>
         </div>
-
-        <po-divider p-label="Dados Principais"></po-divider>
-
-        <div class="po-row">
-            <div class="po-col-12 po-col-md-6 po-col-lg-4">
-                <po-info [p-label]="labelDocumento" [p-value]="resultado()!.documento"></po-info>
-            </div>
-
-            <div class="po-col-12 po-col-md-6 po-col-lg-4">
-                <po-info [p-label]="tipoDocumento === 'cpf' ? 'Nome' : 'Razão Social'"
-                    [p-value]="resultado()!.nome"></po-info>
-            </div>
-
-            @if (resultado()!.dataAbertura) {
-            <div class="po-col-12 po-col-md-6 po-col-lg-4">
-                <po-info p-label="Data de Abertura" [p-value]="resultado()!.dataAbertura"></po-info>
-            </div>
-            }
-
-            @if (resultado()!.atividade) {
-            <div class="po-col-12 po-col-md-6 po-col-lg-4">
-                <po-info p-label="Atividade Principal" [p-value]="resultado()!.atividade"></po-info>
-            </div>
-            }
-
-            @if (resultado()!.naturezaJuridica) {
-            <div class="po-col-12 po-col-md-6 po-col-lg-4">
-                <po-info p-label="Natureza Jurídica" [p-value]="resultado()!.naturezaJuridica"></po-info>
-            </div>
-            }
-        </div>
-
-        <po-divider p-label="Contato e Localização"></po-divider>
-
-        <div class="po-row">
-            <div class="po-col-12 po-col-md-6 po-col-lg-4">
-                <po-info p-label="Município" [p-value]="resultado()!.municipio"></po-info>
-            </div>
-
-            <div class="po-col-12 po-col-md-6 po-col-lg-4">
-                <po-info p-label="UF" [p-value]="resultado()!.uf"></po-info>
-            </div>
-
-            @if (resultado()!.email) {
-            <div class="po-col-12 po-col-md-6 po-col-lg-4">
-                <po-info p-label="E-mail" [p-value]="resultado()!.email"></po-info>
-            </div>
-            }
-
-            @if (resultado()!.telefone) {
-            <div class="po-col-12 po-col-md-6 po-col-lg-4">
-                <po-info p-label="Telefone" [p-value]="resultado()!.telefone"></po-info>
-            </div>
-            }
-        </div>
-
     </po-container>
     }
 
