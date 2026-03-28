@@ -20,6 +20,13 @@ const CONFIG = {
   filial: getEnv('FILIAL', '99')
 };
 
+interface ProtheusResponse {
+  response?: string;
+  success?: boolean;
+  data?: unknown;
+  Data?: unknown | unknown[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -53,7 +60,7 @@ export class FornecedorService {
   /**
    * Traz os fornecedores (GET) - Usando responseType 'text' para evitar erro de JSON inválido
    */
-  async getAll(cCgc: string = ''): Promise<void> {
+  async getAll(cCgc = ''): Promise<void> {
     this.loadingSignal.set(true);
     this.messageSignal.set('');
     const url = `${this.resource}/GET${cCgc ? `?cCgc=${cCgc}` : ''}`;
@@ -63,10 +70,10 @@ export class FornecedorService {
         this.http.get(url, { headers: this.getHeaders(), responseType: 'text' })
       );
       
-      let response: any;
+      let response: ProtheusResponse;
       try {
         response = JSON.parse(rawResponse);
-      } catch (e) {
+      } catch {
         // Se falhar o parse, assumimos que é uma mensagem direta (ex: Fornecedor não encontrado)
         this.messageSignal.set(rawResponse.trim());
         this.fornecedoresSignal.set([]);
@@ -81,11 +88,11 @@ export class FornecedorService {
         list = item ? [item] : [];
       } else if (response?.Data) {
         const dataArr = Array.isArray(response.Data) ? response.Data : [response.Data];
-        list = dataArr.map((i: any) => this.mapFromAdvpl(i)!);
+        list = dataArr.map((i) => this.mapFromAdvpl(i)!).filter(Boolean) as Fornecedor[];
       }
       
       this.fornecedoresSignal.set(list);
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.fornecedoresSignal.set([]);
       this.extractError(error);
       throw error;
@@ -116,7 +123,7 @@ export class FornecedorService {
       await lastValueFrom(
         this.http.post(url, body, { headers: this.getHeaders(), responseType: 'text' })
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.extractError(error);
       throw error;
     } finally {
@@ -143,7 +150,7 @@ export class FornecedorService {
       await lastValueFrom(
         this.http.put(url, body, { headers: this.getHeaders(), responseType: 'text' })
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.extractError(error);
       throw error;
     } finally {
@@ -164,7 +171,7 @@ export class FornecedorService {
         this.http.delete(url, { headers: this.getHeaders(), responseType: 'text' })
       );
       this.fornecedoresSignal.update(list => list.filter(f => f.A2_CGC !== cCgc));
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.extractError(error);
       throw error;
     } finally {
@@ -175,14 +182,15 @@ export class FornecedorService {
   /**
    * Centraliza a extração de mensagens de erro e limpeza de JSONs concatenados
    */
-  private extractError(error: any) {
+  private extractError(error: unknown) {
     let raw = "";
-    if (typeof error.error === 'string') {
-      raw = error.error;
-    } else if (error.error?.response) {
-      raw = error.error.response;
-    } else if (error.message) {
-      raw = error.message;
+    const err = error as { error?: string | { response?: string }; message?: string };
+    if (typeof err.error === 'string') {
+      raw = err.error;
+    } else if (err.error?.response) {
+      raw = err.error.response;
+    } else if (err.message) {
+      raw = err.message;
     }
 
     let msg = "";
@@ -220,23 +228,24 @@ export class FornecedorService {
   /**
    * Transforma [["A2_COD", "111"], ["A2_NOME", "..."]] em Objeto
    */
-  private mapFromAdvpl(data: any): Fornecedor | null {
+  private mapFromAdvpl(data: unknown): Fornecedor | null {
     if (!data || !Array.isArray(data)) return null;
 
-    const obj: any = {};
+    const obj: Record<string, string | number> = {};
 
-    data.forEach(item => {
+    data.forEach((item: unknown) => {
       // Se for o formato [["CAMPO", "VALOR"], ...]
       if (Array.isArray(item) && item.length === 2) {
-        const [campo, valor] = item;
+        const [campo, valor] = item as [string, string | number];
         obj[campo] = typeof valor === 'string' ? valor.trim() : valor;
       } 
       // Se for o formato { campo: "...", valor: "..." }
-      else if (item.campo && item.valor !== undefined) {
-        obj[item.campo] = typeof item.valor === 'string' ? item.valor.trim() : item.valor;
+      else if (item && typeof item === 'object' && 'campo' in item && 'valor' in (item as Record<string, unknown>)) {
+        const field = item as { campo: string, valor: string | number };
+        obj[field.campo] = typeof field.valor === 'string' ? field.valor.trim() : field.valor;
       }
     });
 
-    return Object.keys(obj).length > 0 ? obj : null;
+    return Object.keys(obj).length > 0 ? (obj as Fornecedor) : null;
   }
 }
