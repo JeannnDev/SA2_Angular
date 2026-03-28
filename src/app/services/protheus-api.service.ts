@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable } from 'rxjs';
 
 /**
  * Auxiliar para ler variáveis do .env (compatível com SSR/Browser)
@@ -51,17 +52,21 @@ export class ProtheusApiService {
     const baseUrl = `${PROTHEUS_CONFIG.apiBaseUrl}${sanitizedPath.replace(/\/$/, '')}`;
 
     return {
-      get: <T = unknown>(endpoint = '', options: Record<string, unknown> = {}) =>
-        this.http.get<T>(`${baseUrl}${endpoint}`, { headers: this.getHeaders(), ...options as Record<string, unknown> }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      get: <T = unknown>(endpoint = '', options: any = {}): Observable<T> =>
+        this.http.get<T>(`${baseUrl}${endpoint}`, { headers: this.getHeaders(), ...options }) as Observable<T>,
 
-      post: <T = unknown>(endpoint: string, body: unknown, options: Record<string, unknown> = {}) =>
-        this.http.post<T>(`${baseUrl}${endpoint}`, body, { headers: this.getHeaders(), ...options as Record<string, unknown> }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      post: <T = unknown>(endpoint: string, body: any, options: any = {}): Observable<T> =>
+        this.http.post<T>(`${baseUrl}${endpoint}`, body, { headers: this.getHeaders(), ...options }) as Observable<T>,
 
-      put: <T = unknown>(endpoint: string, body: unknown, options: Record<string, unknown> = {}) =>
-        this.http.put<T>(`${baseUrl}${endpoint}`, body, { headers: this.getHeaders(), ...options as Record<string, unknown> }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      put: <T = unknown>(endpoint: string, body: any, options: any = {}): Observable<T> =>
+        this.http.put<T>(`${baseUrl}${endpoint}`, body, { headers: this.getHeaders(), ...options }) as Observable<T>,
 
-      delete: <T = unknown>(endpoint: string, options: Record<string, unknown> = {}) =>
-        this.http.delete<T>(`${baseUrl}${endpoint}`, { headers: this.getHeaders(), ...options as Record<string, unknown> }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete: <T = unknown>(endpoint: string, options: any = {}): Observable<T> =>
+        this.http.delete<T>(`${baseUrl}${endpoint}`, { headers: this.getHeaders(), ...options }) as Observable<T>,
 
       baseUrl: baseUrl
     };

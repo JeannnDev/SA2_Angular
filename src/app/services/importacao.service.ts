@@ -44,14 +44,14 @@ export class ImportacaoService {
           for (let i = startLine; i < jsonArr.length; i++) {
             const row = jsonArr[i];
             
-            // Aceita se tiver pelo menos as 3 colunas principais e dados básicos
+            // Mapeamento dinâmico: as colunas do CSV vira chaves C5_ e C6_
             if (row && row.length >= 1 && (row[0] || row[1])) {
               pedidos.push({
-                pedidoExterno: String(row[0] || '').trim(),
-                cliente: String(row[1] || '').trim(),
-                produto: String(row[2] || '').trim(),
-                quantidade: Number(row[3] || 0),
-                preco: typeof row[4] === 'string' ? Number(row[4].replace(',', '.')) : Number(row[4] || 0)
+                C5_EXTERNO: String(row[0] || '').trim(),
+                C5_CLIENTE: String(row[1] || '').trim(),
+                C6_PRODUTO: String(row[2] || '').trim(),
+                C6_QTDVEN: Number(row[3] || 0),
+                C6_PRCVEN: typeof row[4] === 'string' ? Number(row[4].replace(',', '.')) : Number(row[4] || 0)
               });
             }
           }
@@ -82,3 +82,4 @@ export class ImportacaoService {
     return this.api.post<ResultadoImportacao>(url, payload);
   }
 }
+

@@ -43,10 +43,10 @@ export class FornecedorService {
       
       let response: ProtheusResponse;
       try {
-        response = JSON.parse(rawResponse);
+        response = JSON.parse(rawResponse as string);
       } catch {
         // Se falhar o parse, assumimos que é uma mensagem direta (ex: Fornecedor não encontrado)
-        this.messageSignal.set(rawResponse.trim());
+        this.messageSignal.set((rawResponse as string).trim());
         this.fornecedoresSignal.set([]);
         return;
       }

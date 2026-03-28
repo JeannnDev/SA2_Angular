@@ -1,4 +1,4 @@
-import { Component, ViewChild, ChangeDetectorRef } from '@angular/core';
+import { Component, ViewChild, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -17,7 +17,7 @@ import {
   PoStepperModule,
   PoWidgetModule,
   PoInfoModule,
-  PoDialogService
+  PoUploadFile
 } from '@po-ui/ng-components';
 import { ImportacaoService } from '../../services/importacao.service';
 import { PedidoCsv, ResultadoImportacao } from '../../models/importacao.model';
@@ -47,14 +47,20 @@ export class UploadComponent {
   @ViewChild('POItemsOri', { static: false }) poItemsOri!: PoTableComponent;
   @ViewChild('stepper', { static: false }) stepper!: PoStepperComponent;
 
+  // Injeções
+  private service: ImportacaoService = inject(ImportacaoService);
+  private notification: PoNotificationService = inject(PoNotificationService);
+  private router: Router = inject(Router);
+  private cdr: ChangeDetectorRef = inject(ChangeDetectorRef);
+
   // Estado da tela
-  origem: string = '';
-  arquivoNome: string = '';
-  isLoading: boolean = false;
+  origem = '';
+  arquivoNome = '';
+  isLoading = false;
 
   // Dados
-  pedidos: any[] = [];           // Lista completa com $selected para o po-table
-  pedidosSelecionados: any[] = []; // Cópia dos selecionados para enviar ao Protheus
+  pedidos: PedidoCsv[] = [];           // Lista completa com $selected para o po-table
+  pedidosSelecionados: PedidoCsv[] = []; // Cópia dos selecionados para enviar ao Protheus
 
   readonly origens = [
     { label: 'CRM', value: 'CRM' },
@@ -62,25 +68,20 @@ export class UploadComponent {
     { label: 'Protheus', value: 'Protheus' }
   ];
 
-  readonly columns: Array<PoTableColumn> = [
-    { property: 'pedidoExterno', label: 'Ped. Externo', width: '20%' },
-    { property: 'cliente', label: 'Cliente', width: '25%' },
-    { property: 'produto', label: 'Produto', width: '25%' },
-    { property: 'quantidade', label: 'Qtd', type: 'number', width: '10%' },
-    { property: 'preco', label: 'Preço', type: 'currency', format: 'BRL', width: '20%' }
+  readonly columns: PoTableColumn[] = [
+    { property: 'C5_EXTERNO', label: 'Ped. Externo', width: '20%' },
+    { property: 'C5_CLIENTE', label: 'Cliente', width: '25%' },
+    { property: 'C6_PRODUTO', label: 'Produto', width: '25%' },
+    { property: 'C6_QTDVEN', label: 'Qtd', type: 'number', width: '10%' },
+    { property: 'C6_PRCVEN', label: 'Preço', type: 'currency', format: 'BRL', width: '20%' }
   ];
 
-  constructor(
-    private service: ImportacaoService,
-    private notification: PoNotificationService,
-    private router: Router,
-    private cdr: ChangeDetectorRef
-  ) {}
+
 
   // --- Funções de validação para o Stepper ---
 
   /** Passo 1 → 2: libera somente se tiver origem E arquivo com dados */
-  arquivosUpload: any[] = []; // Armazena estado do po-upload para limpar após leitura
+  arquivosUpload: PoUploadFile[] = []; // Armazena estado do po-upload para limpar após leitura
 
   podeAvancarPasso1 = (): boolean => {
     return !!this.origem && this.pedidos.length > 0;
@@ -92,7 +93,7 @@ export class UploadComponent {
 
   // --- Captura do arquivo via po-upload (Drag & Drop) ---
 
-  onFileChangeUpload(files: any[]): void {
+  onFileChangeUpload(files: PoUploadFile[]): void {
     if (!files || files.length === 0) return;
 
     // O po-upload nos dá um array de PoUploadFile. O arquivo nativo fica em rawFile.
@@ -135,9 +136,9 @@ export class UploadComponent {
         setTimeout(() => this.stepper.next(), 400);
       }
 
-    }).catch((err: any) => {
+    }).catch((err: unknown) => {
       this.isLoading = false;
-      this.notification.error('Erro na leitura do arquivo: ' + err.message);
+      this.notification.error('Erro na leitura do arquivo: ' + (err as Error).message);
     });
 
     // Limpa a seleção para permitir re-selecionar o mesmo arquivo se as alterações forem feitas
@@ -156,26 +157,26 @@ export class UploadComponent {
     }
   }
 
-  onItemSelecionado(item: any): void {
+  onItemSelecionado(item: PedidoCsv): void {
     const exists = this.pedidosSelecionados.some(
-      p => p.pedidoExterno === item.pedidoExterno && p.produto === item.produto
+      p => p.C5_EXTERNO === item.C5_EXTERNO && p.C6_PRODUTO === item.C6_PRODUTO
     );
     if (!exists) {
       this.pedidosSelecionados = [...this.pedidosSelecionados, item];
     }
   }
 
-  onItemRemovido(item: any): void {
+  onItemRemovido(item: PedidoCsv): void {
     this.pedidosSelecionados = this.pedidosSelecionados.filter(
-      p => !(p.pedidoExterno === item.pedidoExterno && p.produto === item.produto)
+      p => !(p.C5_EXTERNO === item.C5_EXTERNO && p.C6_PRODUTO === item.C6_PRODUTO)
     );
   }
 
   // --- Ações da toolbar ---
 
   baixarModelo(): void {
-    const linhas: any[][] = [
-      ['PedidoExterno', 'Cliente', 'Produto', 'Quantidade', 'Preco'],
+    const linhas: (string | number)[][] = [
+      ['C5_EXTERNO', 'C5_CLIENTE', 'C6_PRODUTO', 'C6_QTDVEN', 'C6_PRCVEN'],
       ['P0001', 'PROSPERA CLIENTE 1', 'PROD001', 5, 1500.00],
       ['P0002', 'PROSPERA CLIENTE 2', 'PROD002', 1, 80.50]
     ];
@@ -207,8 +208,8 @@ export class UploadComponent {
     this.isLoading = true;
 
     // Envia apenas os campos do modelo (sem $selected)
-    const payload: PedidoCsv[] = this.pedidosSelecionados.map(({ pedidoExterno, cliente, produto, quantidade, preco }) => ({
-      pedidoExterno, cliente, produto, quantidade, preco
+    const payload: PedidoCsv[] = this.pedidosSelecionados.map(({ C5_EXTERNO, C5_CLIENTE, C6_PRODUTO, C6_QTDVEN, C6_PRCVEN }) => ({
+      C5_EXTERNO, C5_CLIENTE, C6_PRODUTO, C6_QTDVEN, C6_PRCVEN
     }));
 
     this.service.importar(payload, this.origem).subscribe({

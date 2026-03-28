@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { 
@@ -10,7 +10,7 @@ import {
   PoTableColumn,
   PoNotificationService
 } from '@po-ui/ng-components';
-import { ResultadoImportacao, ItemResultado } from '../../models/importacao.model';
+import { ResultadoImportacao } from '../../models/importacao.model';
 
 @Component({
   selector: 'app-resultado',
@@ -29,6 +29,10 @@ import { ResultadoImportacao, ItemResultado } from '../../models/importacao.mode
 export class ResultadoComponent implements OnInit {
   
   resultado?: ResultadoImportacao;
+  
+  // Injeções
+  private router = inject(Router);
+  private notification = inject(PoNotificationService);
 
   readonly tableColumns: PoTableColumn[] = [
     { property: 'pedidoExterno', label: 'Ped. Externo' },
@@ -41,7 +45,7 @@ export class ResultadoComponent implements OnInit {
     { property: 'mensagem', label: 'Mensagem' }
   ];
 
-  constructor(private router: Router, private notification: PoNotificationService) {
+  constructor() {
     const navigation = this.router.getCurrentNavigation();
     this.resultado = navigation?.extras?.state?.['resultado'];
   }
