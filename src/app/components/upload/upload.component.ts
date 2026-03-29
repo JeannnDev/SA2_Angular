@@ -191,8 +191,9 @@ export class UploadComponent {
     this.arquivoNome = '';
     this.pedidos = [];
     this.pedidosSelecionados = [];
+    this.arquivosUpload = [];
     if (this.stepper) {
-      this.stepper.active(1);
+      this.stepper.active(0);
     }
     this.cdr.detectChanges();
   }

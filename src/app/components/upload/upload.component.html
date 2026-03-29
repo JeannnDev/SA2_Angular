@@ -28,14 +28,18 @@
               (ngModelChange)="onFileChangeUpload($event)">
             </po-upload>
 
-            <span class="po-font-text-bold po-text-color-neutral-dark-70" *ngIf="arquivoNome">
-              ✅ Carregado: {{ arquivoNome }} — {{ pedidos.length }} pedidos lidos
-            </span>
+            @if (arquivoNome) {
+              <span class="po-font-text-bold po-text-color-neutral-dark-70">
+                ✅ Carregado: {{ arquivoNome }} — {{ pedidos.length }} pedidos lidos
+              </span>
+            }
 
-            <p class="po-font-text-small po-text-color-neutral-dark-40 po-mt-2" *ngIf="!arquivoNome">
-              Selecione a origem e o arquivo. Todos os itens ser&atilde;o pr&eacute;-selecionados para voc&ecirc;
-              revisar no pr&oacute;ximo passo.
-            </p>
+            @if (!arquivoNome) {
+              <p class="po-font-text-small po-text-color-neutral-dark-40 po-mt-2">
+                Selecione a origem e o arquivo. Todos os itens ser&atilde;o pr&eacute;-selecionados para voc&ecirc;
+                revisar no pr&oacute;ximo passo.
+              </p>
+            }
           </div>
         </div>
 
@@ -62,13 +66,15 @@
           </div>
         </div>
 
-        <div class="po-row po-mt-1" *ngIf="pedidosSelecionados.length === 0">
-          <div class="po-md-12">
-            <span class="po-text-color-feedback-negative">
-              ⚠️ Nenhum item selecionado. Marque ao menos um para continuar.
-            </span>
+        @if (pedidosSelecionados.length === 0) {
+          <div class="po-row po-mt-1">
+            <div class="po-md-12">
+              <span class="po-text-color-feedback-negative">
+                ⚠️ Nenhum item selecionado. Marque ao menos um para continuar.
+              </span>
+            </div>
           </div>
-        </div>
+        }
 
         <po-divider></po-divider>
 
@@ -77,9 +83,11 @@
             <po-button p-label="Confirmar Seleção e Avançar" p-kind="primary" p-icon="po-icon-arrow-right"
               [p-disabled]="pedidosSelecionados.length === 0" (p-click)="avancarParaImportar()">
             </po-button>
-            <span class="po-font-text-small po-text-color-neutral-dark-40" *ngIf="pedidosSelecionados.length > 0">
-              {{ pedidosSelecionados.length }} pedido(s) serão enviados ao Protheus.
-            </span>
+            @if (pedidosSelecionados.length > 0) {
+              <span class="po-font-text-small po-text-color-neutral-dark-40">
+                {{ pedidosSelecionados.length }} pedido(s) serão enviados ao Protheus.
+              </span>
+            }
           </div>
         </div>
 
@@ -125,6 +133,8 @@
     </po-stepper>
   </po-container>
 
-  <po-loading-overlay *ngIf="isLoading" p-text="Processando arquivo..."></po-loading-overlay>
+  @if (isLoading) {
+    <po-loading-overlay p-text="Processando arquivo..."></po-loading-overlay>
+  }
 
 </po-page-default>
