@@ -41,9 +41,10 @@ export class App {
       ]
     },
     {
-      label: 'Pedidos de Compra',
+      label: 'Pedidos de Venda',
       icon: 'an an-shopping-cart',
       subItems: [
+        { label: 'Lançar Pedido', link: '/pedido-venda', icon: 'an an-plus' },
         { label: 'Importar Pedidos', link: '/upload', icon: 'an an-upload-simple' }
       ]
     },
@@ -51,14 +52,16 @@ export class App {
       label: 'Clientes',
       icon: 'an an-user',
       subItems: [
-        { label: 'Clientes', link: '/cliente', icon: 'an an-user' }
+        { label: 'Clientes', link: '/cliente', icon: 'an an-user' },
+        { label: 'Importar Clientes', link: '/upload-cliente', icon: 'an an-upload-simple' }
       ]
     },
     {
       label: 'Produtos',
       icon: 'an an-package',
       subItems: [
-        { label: 'Produtos', link: '/produto', icon: 'an an-package' }
+        { label: 'Produtos', link: '/produto', icon: 'an an-package' },
+        { label: 'Importar Produtos', link: '/upload-produto', icon: 'an an-upload-simple' }
       ]
     }
   ];

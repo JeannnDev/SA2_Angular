@@ -40,8 +40,6 @@ WSMETHOD POST WSSERVICE WSPedidoVenda
     Local lMsErroAuto := .F.
     Local cError    := ""
 
-    RpcSetEnv("01", "99")
-
     FWJsonDeserialize(cBody, @oJson)
 
     If oJson == Nil
@@ -60,7 +58,7 @@ WSMETHOD POST WSSERVICE WSPedidoVenda
         cMsgLog := ""
 
         DbSelectArea("SC5")
-        DbSetOrder(1)
+        SC5->(DbOrderNickName("idext"))
         If SC5->(DbSeek(xFilial("SC5") + PadR(oJson:pedidos[nX]:C5_EXTERNO, 20)))
             lOk := .F.
             cMsgLog := "Pedido Externo ja importado anteriormente (Duplicado)."
@@ -101,14 +99,15 @@ WSMETHOD POST WSSERVICE WSPedidoVenda
             aAdd(aCab, {"C5_TIPO"   , "N"                          , Nil})
             aAdd(aCab, {"C5_LOJA"   , "01"                         , Nil})
             aAdd(aCab, {"C5_CONDPAG", "001"                        , Nil})
-            aAdd(aCab, {"C5_ORIGEM" , oJson:origem                 , Nil})
+            aAdd(aCab, {"C5_XORIG"  , oJson:origem                 , Nil})
+            aAdd(aCab, {"C5_IDEXT"  , PadR(oPedido:C5_EXTERNO, 20) , Nil})
 
             aProps := oPedido:GetNames()
             For nP := 1 To Len(aProps)
                 cCampo := aProps[nP]
                 xValor := oPedido[cCampo]
 
-                If Left(cCampo, 3) == "C5_"
+                If Left(cCampo, 3) == "C5_" .And. cCampo != "C5_EXTERNO"
                     aAdd(aCab, { cCampo, xValor, Nil })
                 ElseIf Left(cCampo, 3) == "C6_"
                     aAdd(aItem, { cCampo, xValor, Nil })
