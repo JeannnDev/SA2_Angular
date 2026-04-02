@@ -1,0 +1,10 @@
+<svg width="32" height="32" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="popurple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#93278f;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#532d8c;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <path d="M10 70 L40 10 L70 70 Z" fill="url(#popurple)" />
+  <path d="M30 60 L40 42 L50 60 Z" fill="#ffffff" />
+</svg>
