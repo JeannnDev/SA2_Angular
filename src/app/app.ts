@@ -33,18 +33,35 @@ export class App {
 
   readonly menus: PoMenuItem[] = [
     {
-      label: 'Fornecedores',
+      label: 'Cadastros',
       icon: 'an an-users',
       subItems: [
-        { label: 'Cadastro', link: '/fornecedor', icon: 'an an-identification-card' },
+        { label: 'Fornecedores', link: '/fornecedor', icon: 'an an-identification-card' },
         { label: 'Consulta', link: '/consulta', icon: 'an an-magnifying-glass' }
       ]
     },
     {
-      label: 'Pedidos de Compra',
+      label: 'Pedidos de Venda',
       icon: 'an an-shopping-cart',
       subItems: [
+        { label: 'Pedido de Venda', link: '/pedido-venda', icon: 'an an-plus' },
         { label: 'Importar Pedidos', link: '/upload', icon: 'an an-upload-simple' }
+      ]
+    },
+    {
+      label: 'Clientes',
+      icon: 'an an-user',
+      subItems: [
+        { label: 'Clientes', link: '/cliente', icon: 'an an-user' },
+        { label: 'Importar Clientes', link: '/upload-cliente', icon: 'an an-upload-simple' }
+      ]
+    },
+    {
+      label: 'Produtos',
+      icon: 'an an-package',
+      subItems: [
+        { label: 'Produtos', link: '/produto', icon: 'an an-package' },
+        { label: 'Importar Produtos', link: '/upload-produto', icon: 'an an-upload-simple' }
       ]
     }
   ];

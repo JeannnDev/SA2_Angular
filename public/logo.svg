@@ -1,5 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="230" height="40" viewBox="0 0 230 40">
-  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Nunito, sans-serif, Arial" font-size="18" font-weight="bold" fill="#6c2d77">
-    SA2 Fornecedores
-  </text>
+<svg width="250" height="80" viewBox="0 0 250 80" xmlns="http://www.w3.org/2000/svg">
+  <!-- Definições de Gradiente e Sombras -->
+  <defs>
+    <linearGradient id="popurple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#93278f;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#532d8c;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Símbolo Delta Estalizado -->
+  <path d="M15 60 L45 10 L75 60 Z" fill="url(#popurple)" />
+  <path d="M35 50 L45 32 L55 50 Z" fill="#ffffff" />
+
+  <!-- Texto ERP (Negrito/Profissional) -->
+  <text x="90" y="55" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="32" font-weight="800" fill="#424242">ERP</text>
+  
+  <!-- Texto Delta (Moderno/Slim) -->
+  <text x="145" y="55" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="32" font-weight="300" fill="#532d8c">Delta</text>
+  
+  <!-- Detalhe Decorativo -->
+  <rect x="90" y="62" width="135" height="4" rx="2" fill="url(#popurple)" opacity="0.8" />
 </svg>

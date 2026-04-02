@@ -1,34 +1,56 @@
-<po-page-default 
+<po-page-default
   p-title="Resultado da Importação"
   [p-actions]="[
     { label: 'Nova Importação', action: voltar.bind(this), icon: 'po-icon-refresh' }
   ]">
 
-  <div class="po-row" *ngIf="resultado">
-    <div class="po-md-3">
-      <po-info p-label="Total do CSV" [p-value]="resultado.total.toString()"></po-info>
-    </div>
-    <div class="po-md-3">
-      <po-info p-label="Sucesso" [p-value]="resultado.sucesso.toString()"></po-info>
-    </div>
-    <div class="po-md-3">
-      <po-info p-label="Erros" [p-value]="resultado.erros.toString()"></po-info>
-    </div>
-    <div class="po-md-3">
-      <po-info p-label="Duplicados" [p-value]="resultado.duplicados.toString()"></po-info>
-    </div>
-  </div>
+  @if (resultado) {
+    <div class="po-row" style="margin-bottom: 16px;">
 
-  <po-divider p-label="Detalhamento do Processamento"></po-divider>
+      <div class="po-md-3">
+        <po-info
+          p-label="Total Enviado"
+          [p-value]="resultado.total + ''">
+        </po-info>
+      </div>
 
-  <div class="po-row" *ngIf="resultado">
-    <div class="po-md-12">
-      <po-table 
-        [p-columns]="tableColumns" 
-        [p-items]="resultado.itens"
-        p-striped="true">
-      </po-table>
+      <div class="po-md-3">
+        <po-info
+          p-label="✅ Sucesso"
+          [p-value]="resultado.sucesso + ''">
+        </po-info>
+      </div>
+
+      <div class="po-md-3">
+        <po-info
+          p-label="❌ Erros"
+          [p-value]="resultado.erros + ''">
+        </po-info>
+      </div>
+
+      <div class="po-md-3">
+        <po-info
+          p-label="⚠️ Duplicados"
+          [p-value]="resultado.duplicados + ''">
+        </po-info>
+      </div>
+
     </div>
-  </div>
+  }
+
+  <po-divider p-label="Detalhamento por Pedido"></po-divider>
+
+  @if (resultado) {
+    <div class="po-row">
+      <div class="po-md-12">
+        <po-table
+          [p-columns]="tableColumns"
+          [p-items]="itens"
+          p-striped="true"
+          p-sort="true">
+        </po-table>
+      </div>
+    </div>
+  }
 
 </po-page-default>

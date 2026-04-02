@@ -1,0 +1,131 @@
+<po-page-default p-title="Importação de Produtos">
+
+  <po-container>
+    <po-stepper #stepper>
+
+      <!-- ===== PASSO 1: Arquivo ===== -->
+      <po-step p-label="Importação" [p-can-active-next-step]="podeAvancarPasso1">
+
+        <div class="po-row po-mb-2">
+          <div class="po-md-12">
+            <po-button p-label="Baixar Modelo (.xlsx)" p-icon="po-icon-download" (p-click)="baixarModelo()">
+            </po-button>
+          </div>
+        </div>
+
+        <po-divider p-label="Arquivo de Importação"></po-divider>
+
+        <div class="po-row">
+          <div class="po-md-12">
+            <po-upload name="upload" [p-drag-drop]="true" p-label="Arraste ou selecione o arquivo CSV/Excel (.xlsx)"
+              [p-required-url]="false" [p-auto-upload]="false" [p-hide-send-button]="true" [ngModel]="arquivosUpload"
+              (ngModelChange)="onFileChangeUpload($event)">
+            </po-upload>
+
+            @if (arquivoNome) {
+            <span class="po-font-text-bold po-text-color-neutral-dark-70">
+              ✅ Carregado: {{ arquivoNome }} — {{ produtos.length }} produtos lidos
+            </span>
+            }
+
+            @if (!arquivoNome) {
+            <p class="po-font-text-small po-text-color-neutral-dark-40 po-mt-2">
+              Selecione o arquivo com os dados dos produtos. Todos os itens serão pré-selecionados para você
+              revisar no próximo passo.
+            </p>
+            }
+          </div>
+        </div>
+
+      </po-step>
+
+      <!-- ===== PASSO 2: Conferência ===== -->
+      <po-step p-label="Conferência" [p-can-active-next-step]="podeAvancarPasso2">
+
+        <div class="po-row po-mb-2">
+          <div class="po-md-12">
+            <p class="po-font-text">
+              Todos os produtos estão <strong>pré-selecionados</strong>.
+              Desmarque os que <strong>NÃO</strong> deseja importar e clique em <strong>Próximo</strong>.
+            </p>
+          </div>
+        </div>
+
+        <div class="po-row">
+          <div class="po-md-12">
+            <po-table #tabelaProdutos [p-columns]="columns" [p-selectable]="true" [p-height]="380" [p-items]="produtos"
+              [p-hide-table-search]="false" (p-selected)="onItemSelecionado($event)"
+              (p-unselected)="onItemRemovido($event)" [p-hide-action-fixed-columns]="true" [p-text-wrap]="true">
+            </po-table>
+          </div>
+        </div>
+
+        @if (produtosSelecionados.length === 0) {
+        <div class="po-row po-mt-1">
+          <div class="po-md-12">
+            <span class="po-text-color-feedback-negative">
+              ⚠️ Nenhum item selecionado. Marque ao menos um para continuar.
+            </span>
+          </div>
+        </div>
+        }
+
+        <po-divider></po-divider>
+
+        <div class="po-row po-mt-1">
+          <div class="po-md-12" style="display: flex; gap: 8px; align-items: center;">
+            <po-button p-label="Confirmar Seleção e Avançar" p-kind="primary" p-icon="po-icon-arrow-right"
+              [p-disabled]="produtosSelecionados.length === 0" (p-click)="avancarParaImportar()">
+            </po-button>
+            @if (produtosSelecionados.length > 0) {
+            <span class="po-font-text-small po-text-color-neutral-dark-40">
+              {{ produtosSelecionados.length }} produto(s) serão enviados ao Protheus.
+            </span>
+            }
+          </div>
+        </div>
+
+      </po-step>
+
+      <!-- ===== PASSO 3: Importar ===== -->
+      <po-step p-label="Importar">
+
+        <po-widget p-title="Resumo da Importação" class="po-mb-3">
+          <div class="po-row">
+            <po-info class="po-md-6" p-label="Arquivo" [p-value]="arquivoNome || '-'"></po-info>
+            <po-info class="po-md-6" p-label="Total de Produtos Selecionados"
+              [p-value]="produtosSelecionados.length.toString()"></po-info>
+          </div>
+        </po-widget>
+
+        <div class="po-row po-mb-2">
+          <div class="po-md-12">
+            <div class="po-font-text-bold po-mb-1">Produtos que serão enviados ao Protheus:</div>
+            <po-table [p-columns]="columns" [p-items]="produtosSelecionados" [p-striped]="true" [p-height]="280"
+              [p-hide-action-fixed-columns]="true" [p-text-wrap]="true">
+            </po-table>
+          </div>
+        </div>
+
+        <po-divider></po-divider>
+
+        <div class="po-row po-mt-1">
+          <div class="po-md-12" style="display: flex; gap: 8px; align-items: center;">
+            <po-button p-label="Confirmar e Enviar" p-kind="primary" p-icon="po-icon-ok" [p-loading]="isLoading"
+              (p-click)="importar()">
+            </po-button>
+            <po-button p-label="Reiniciar" p-icon="po-icon-delete" (p-click)="limpar()">
+            </po-button>
+          </div>
+        </div>
+
+      </po-step>
+
+    </po-stepper>
+  </po-container>
+
+  @if (isLoading) {
+  <po-loading-overlay p-text="Processando arquivo"></po-loading-overlay>
+  }
+
+</po-page-default>
