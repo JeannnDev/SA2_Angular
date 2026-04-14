@@ -43,8 +43,11 @@ export class ApontamentoRecursoComponent implements OnInit {
 
   ngOnInit(): void {
     const data = this.apontamentoService.data();
+    console.log('[Recurso] Dados no estado global:', data);
+    
     if (!data.opNumber || !data.operatorCode) {
-      this.router.navigate(['/apontamento']);
+      console.warn('[Recurso] OP ou Operador ausentes, redirecionando para login...');
+      this.router.navigate(['/apontamento/login']);
       return;
     }
     this.operacoes = data.apiData?.operacoes || [];

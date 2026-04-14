@@ -13,14 +13,14 @@
   display: flex;
   height: 100vh;
   background: #f4f6f9;
-  
-  /* Respeita o menu lateral do PO UI */
-  padding-left: var(--po-menu-width, 256px);
+
+  /* Respeita o menu lateral com um respiro extra de 30px */
+  padding-left: calc(var(--po-menu-width, 256px) + 30px);
 }
 
 @media (max-width: 950px) {
   .wizard-container {
-    padding-left: 64px;
+    padding-left: calc(64px + 15px);
   }
 }
 
@@ -35,14 +35,19 @@
   background: white;
   border-right: 1px solid #e2e8f0;
   display: flex;
-  align-items: flex-start;
   justify-content: center;
   flex-shrink: 0;
   box-shadow: 4px 0 15px rgba(0, 0, 0, 0.03);
 }
 
 @media (min-width: 768px) {
-  .wizard-sidebar { width: 140px; }
+  .wizard-sidebar {
+    width: 140px;
+  }
+}
+
+app-apontamento-step-indicator {
+  width: 100%;
 }
 
 .wizard-content {

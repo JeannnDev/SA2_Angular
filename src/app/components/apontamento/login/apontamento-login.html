@@ -43,6 +43,7 @@
               id="operator-input"
               name="operador"
               [(ngModel)]="operatorCode"
+              (ngModelChange)="onOperatorCodeChange($event)"
               p-placeholder="Digite o código do operador ou escaneie"
               p-clean
               (p-enter)="onOperatorEnter()">

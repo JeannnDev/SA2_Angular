@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, inject } from '@angular/core';
+import { Component, OnInit, ViewChild, inject, ChangeDetectorRef } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -26,6 +26,7 @@ export class ApontamentoLoginComponent implements OnInit {
   public apontamentoService = inject(ApontamentoService);
   private apiService = inject(ApontamentoApiService);
   private notification = inject(PoNotificationService);
+  private cdr = inject(ChangeDetectorRef);
 
   @ViewChild('keyboardModal') keyboardModal!: PoModalComponent;
   @ViewChild('scannerModal') scannerModal!: PoModalComponent;
@@ -168,6 +169,7 @@ export class ApontamentoLoginComponent implements OnInit {
 
   onScannerSimulatorEnter(value: string): void {
     this.scannerModal.close();
+    this.cdr.detectChanges(); // Garante que o modal fechou na UI
     if (this.activeField === 'op') {
       this.opNumber = value;
       this.onOpEnter();
@@ -266,19 +268,39 @@ export class ApontamentoLoginComponent implements OnInit {
       const result = await this.apontamentoService.fetchAndSetOPData(this.opNumber, true);
 
       if (result.success) {
+        console.log('[Login] Sucesso na busca da OP. Verificando status...');
         if (result.isOpEncerrada) {
+          console.warn('[Login] OP está encerrada. Liberando tela para o aviso...');
+          
+          // Forçamos o fechamento do overlay e a detecção de mudanças
+          this.isLoading = false;
+          this.isValidating = false;
+          this.cdr.detectChanges();
+          
           this.opEncerradaModal.open();
           return;
         }
-        if (!result.skipToSummary) {
-          this.router.navigate(['/apontamento/recurso']);
-        } else {
-          this.router.navigate(['/apontamento/resumo']);
-        }
+        
+        const targetPath = !result.skipToSummary ? '/apontamento/recurso' : '/apontamento/resumo';
+        console.log(`[Login] Navegando para: ${targetPath}`);
+        
+        // Pequeno delay para garantir que os Signals do Service foram propagados
+        setTimeout(() => {
+          this.router.navigate([targetPath]);
+        }, 150);
+      } else {
+        console.error('[Login] Falha na busca da OP via Service');
+        this.isLoading = false;
+        this.isValidating = false;
+        this.cdr.detectChanges();
+        this.errorMessage = this.apontamentoService.genericErrorMessage() || 'Erro ao validar dados da OP no Protheus';
+        this.errorModal.open();
       }
     } catch (error) {
-      console.error('Erro no handleNext:', error);
-      this.errorMessage = 'Erro ao processar requisição';
+      console.error('[Login] Erro crítico no handleNext:', error);
+      this.isValidating = false;
+      this.isLoading = false;
+      this.errorMessage = 'Erro ao processar requisição. Verifique a conexão com o Protheus.';
       this.errorModal.open();
     } finally {
       this.isValidating = false;

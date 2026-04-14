@@ -26,6 +26,7 @@ export class ApontamentoApiService {
       .get<unknown>()
       .pipe(
         map((res: unknown) => {
+          console.log('[API] Resposta bruta recebida da OP:', res);
           const raw = res as Record<string, unknown>;
           const response = (raw['RESPONSE'] || raw['response'] || raw) as Record<string, unknown>;
 
@@ -206,7 +207,7 @@ export class ApontamentoApiService {
    * Busca lista de recursos de produção
    */
   fetchRecursos(): Observable<RecursoApontamento[]> {
-    return this.protheusApi.resource('WsRecursoAll')
+    return this.protheusApi.resource('WsRecurso')
       .get<unknown>()
       .pipe(
         map((response: unknown) => {
