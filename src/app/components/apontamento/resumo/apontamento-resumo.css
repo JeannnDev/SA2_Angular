@@ -13,14 +13,14 @@
   display: flex;
   height: 100vh;
   background: #f4f6f9;
-  
-  /* Respeita o menu lateral do PO UI */
-  padding-left: var(--po-menu-width, 256px);
+
+  /* Respeita o menu lateral com um respiro extra de 30px */
+  padding-left: calc(var(--po-menu-width, 256px) + 30px);
 }
 
 @media (max-width: 950px) {
   .wizard-container {
-    padding-left: 64px;
+    padding-left: calc(64px + 15px);
   }
 }
 
@@ -35,14 +35,19 @@
   background: white;
   border-right: 1px solid #e2e8f0;
   display: flex;
-  align-items: flex-start;
   justify-content: center;
   flex-shrink: 0;
   box-shadow: 4px 0 15px rgba(0, 0, 0, 0.03);
 }
 
 @media (min-width: 768px) {
-  .wizard-sidebar { width: 140px; }
+  .wizard-sidebar {
+    width: 140px;
+  }
+}
+
+app-apontamento-step-indicator {
+  width: 100%;
 }
 
 .wizard-content {
@@ -271,14 +276,81 @@
 
 .flex-row { display: flex; align-items: center; gap: 8px; }
 
-/* ── FOOTER ── */
-.page-footer {
-  display: flex;
-  gap: 16px;
-  padding-top: 8px;
+/* ── PRINT BLOCK ── */
+.print-card {
+  margin-top: 24px;
 }
 
-.btn-back, .btn-next { flex: 1; }
+.print-controls-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1.5fr 0.8fr auto;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.print-input {
+  width: 100%;
+}
+
+.copies-input {
+  max-width: 120px;
+}
+
+.btn-custom-print {
+  background-color: #14253d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0 32px;
+  height: 44px; /* match PO UI input height approx */
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-custom-print:hover:not(:disabled) {
+  background-color: #1e3a5f;
+}
+
+.btn-custom-print:disabled {
+  background-color: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* ── PAGE NAVIGATION ── */
+.page-navigation-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.btn-custom-outline {
+  background-color: transparent;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0 24px;
+  height: 44px;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-custom-outline:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+}
 
 /* ── MODAIS ── */
 .modal-content-center {
