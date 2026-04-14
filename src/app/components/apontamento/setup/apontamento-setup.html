@@ -1,0 +1,99 @@
+<div class="setup-container-page">
+  <div class="setup-header">
+    <div class="header-main">
+      <div class="icon-wrap">
+        <po-icon p-icon="po-icon-settings"></po-icon>
+      </div>
+      <div class="text">
+        <h1>Configurações do Sistema</h1>
+        <p>Admin: <strong>{{ operatorName }}</strong></p>
+      </div>
+    </div>
+    <po-button
+      p-label="Sair"
+      p-kind="secondary"
+      p-icon="po-icon-exit"
+      (p-click)="logout()">
+    </po-button>
+  </div>
+
+  <div class="setup-grid">
+    <!-- Coluna Esquerda: Dispositivos -->
+    <div class="setup-column">
+      <div class="config-section">
+        <h3 class="section-title">Dispositivos e Layouts</h3>
+        
+        <div class="config-card">
+          <div class="field">
+            <po-select
+              p-label="Impressora Padrão"
+              p-placeholder="Selecione a impressora"
+              [p-options]="printersOptions"
+              [ngModel]="defaultPrinter"
+              (p-change)="defaultPrinter = $event; savePreferences()">
+            </po-select>
+          </div>
+
+          <div class="field">
+            <po-select
+              p-label="Etiqueta Padrão"
+              p-placeholder="Selecione o layout"
+              [p-options]="labelsOptions"
+              [ngModel]="defaultLabel"
+              (p-change)="defaultLabel = $event; savePreferences()">
+            </po-select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preferências -->
+      <div class="config-section">
+        <h3 class="section-title">Preferências</h3>
+        <div class="config-card">
+          <div class="switch-row">
+            <div class="info">
+              <span class="t">Sinais Sonoros</span>
+              <span class="d">Emitir feedback sonoro</span>
+            </div>
+            <po-switch
+              [(ngModel)]="soundEnabled"
+              (p-change)="savePreferences()">
+            </po-switch>
+          </div>
+
+          <div class="switch-row">
+            <div class="info">
+              <span class="t">Impressão Automática</span>
+              <span class="d">Imprimir após apontar</span>
+            </div>
+            <po-switch
+              [(ngModel)]="autoPrint"
+              (p-change)="savePreferences()">
+            </po-switch>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Coluna Direita: Informações -->
+    <div class="setup-column">
+      <div class="config-section">
+        <h3 class="section-title">Informações</h3>
+        <div class="info-card">
+          <div class="info-line">
+            <span class="l">Versão</span>
+            <span class="v">v2.0.0</span>
+          </div>
+          <div class="info-line">
+            <span class="l">Ambiente</span>
+            <span class="v">Produção</span>
+          </div>
+          <div class="info-line footer">
+            <po-icon p-icon="po-icon-info"></po-icon>
+            <span>ERP DELTA Pointing Module</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

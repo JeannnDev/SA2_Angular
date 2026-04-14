@@ -1,0 +1,135 @@
+.setup-container-page {
+  min-height: 100vh;
+  background-color: #f1f5f9;
+  padding-bottom: 40px;
+}
+
+.setup-header {
+  background: white;
+  padding: 24px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #e2e8f0;
+  margin-bottom: 32px;
+}
+
+.header-main {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.icon-wrap {
+  width: 56px;
+  height: 56px;
+  background: #1e293b;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-wrap po-icon {
+  font-size: 28px;
+  color: white;
+}
+
+.text h1 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.text p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 4px 0 0;
+}
+
+.setup-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 40px;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 32px;
+}
+
+@media (max-width: 992px) {
+  .setup-grid { grid-template-columns: 1fr; }
+}
+
+.config-section {
+  margin-bottom: 32px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+.config-card, .info-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.switch-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.switch-row .info {
+  display: flex;
+  flex-direction: column;
+}
+
+.switch-row .info .t {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 14px;
+}
+
+.switch-row .info .d {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.info-line {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.info-line .l { color: #64748b; font-size: 14px; }
+.info-line .v { font-weight: 700; color: #1e293b; }
+
+.info-line.footer {
+  border: none;
+  padding: 12px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-radius: 8px;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 12px;
+  margin-top: 12px;
+}
