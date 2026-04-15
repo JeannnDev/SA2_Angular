@@ -1,10 +1,10 @@
 .setup-container {
-  background-color: white;
+  background-color: #f4f6f9;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: calc(64px + 32px) 32px 32px calc(var(--po-menu-width, 256px) + 30px);
   width: 100%;
 }
 
@@ -44,6 +44,7 @@
   font-weight: 800;
   color: #0f172a;
   margin: 0;
+  text-align: center;
 }
 
 .card-header p {
