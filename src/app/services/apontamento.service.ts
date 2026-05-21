@@ -481,14 +481,11 @@ export class ApontamentoService {
 
       const opEncerrada = this.isOpEncerrada(opData, operacoes);
 
-      if (
-        opEncerrada &&
-        showDialogs &&
-        opData.status === 'Enc. Total' &&
-        !this.dialogsShownForCurrentOp.has('opEncerrada')
-      ) {
-        this.dialogsShownForCurrentOp.add('opEncerrada');
-        this._showOpEncTotalDialog.set(true);
+      if (opEncerrada) {
+        if (showDialogs && opData.status === 'Enc. Total' && !this.dialogsShownForCurrentOp.has('opEncerrada')) {
+          this.dialogsShownForCurrentOp.add('opEncerrada');
+          this._showOpEncTotalDialog.set(true);
+        }
         return { success: true, skipToSummary: false, isOpEncerrada: true };
       }
 

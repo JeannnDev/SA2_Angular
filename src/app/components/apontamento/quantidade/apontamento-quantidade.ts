@@ -364,7 +364,7 @@ export class ApontamentoQuantidadeComponent implements OnInit, OnDestroy {
         nf: this.tempNF,
         codOper: data.operatorCode,
         nomeOp: data.operatorName || '',
-        qtd: this.quantityProduced || 0,
+        qtd: this.quantityProduced || 1,
         filial: data.operatorFilial || '01'
       };
 

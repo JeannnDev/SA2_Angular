@@ -145,6 +145,22 @@ export class ApontamentoRecursoComponent implements OnInit {
 
     const opIndex = this.operacoes.findIndex((o) => o.operac === this.selectedOperation);
     const op = this.operacoes[opIndex];
+    const isOpTotalEncerrada = this.apontamentoService.data().apiData?.status === 'Enc. Total';
+
+    if (isOpTotalEncerrada) {
+      this.apontamentoService.updateData({
+        operation: this.selectedOperation,
+        resource: this.useDefaultResource ? this.getDefaultResource() : this.selectedRecurso,
+      });
+      this.router.navigate(['/apontamento/resumo']);
+      return;
+    }
+
+    if (op && op.encerrada) {
+      this.notification.error('Esta operação já está encerrada.');
+      return;
+    }
+
     if (op && this.isOperationDisabled(op, opIndex)) {
       this.notification.error('Esta operação está bloqueada por sequência ou falta de saldo.');
       return;
@@ -155,11 +171,7 @@ export class ApontamentoRecursoComponent implements OnInit {
       resource: this.useDefaultResource ? this.getDefaultResource() : this.selectedRecurso,
     });
 
-    if (this.apontamentoService.data().apiData?.status === 'Enc. Total') {
-      this.router.navigate(['/apontamento/resumo']);
-    } else {
-      this.router.navigate(['/apontamento/quantidade']);
-    }
+    this.router.navigate(['/apontamento/quantidade']);
   }
 
   goBack(): void {
