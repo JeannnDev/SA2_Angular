@@ -283,6 +283,10 @@ export class ApontamentoQuantidadeComponent implements OnInit, OnDestroy {
   }
 
   confirmStopTimer(): void {
+    if (this.quantityProduced === 0 && this.loss === 0) {
+      this.notification.warning('Preencha a quantidade produzida (ou perdas) antes de finalizar.');
+      return;
+    }
     if (this.apontamentoService.elapsedTime() < 60) {
       this.notification.warning('Você só pode encerrar o apontamento após 1 minuto de operação.');
       return;
@@ -299,7 +303,14 @@ export class ApontamentoQuantidadeComponent implements OnInit, OnDestroy {
 
   adjustQuantity(amount: number): void {
     const newVal = this.quantityProduced + amount;
-    this.quantityProduced = newVal < 0 ? 0 : newVal;
+    const faltante = this.getQuantidadeFaltante();
+    
+    if (newVal > faltante) {
+      this.quantityProduced = faltante;
+      this.notification.warning(`A quantidade máxima permitida é ${faltante}.`);
+    } else {
+      this.quantityProduced = newVal < 0 ? 0 : newVal;
+    }
     this.cdr.detectChanges();
   }
 
@@ -348,6 +359,13 @@ export class ApontamentoQuantidadeComponent implements OnInit, OnDestroy {
     this.showKeyboard = false;
     if (this.activeField === 'NF') {
       await this.updateNF();
+    } else if (this.activeField === 'quantity') {
+      const faltante = this.getQuantidadeFaltante();
+      if (this.quantityProduced > faltante) {
+        this.quantityProduced = faltante;
+        this.notification.warning(`A quantidade máxima permitida é ${faltante}.`);
+        this.cdr.detectChanges();
+      }
     }
   }
 
