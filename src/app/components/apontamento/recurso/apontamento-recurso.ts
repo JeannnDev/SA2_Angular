@@ -38,7 +38,9 @@ export class ApontamentoRecursoComponent implements OnInit {
   selectedOpDetails: Operacao | null = null;
 
   get canProceed(): boolean {
-    return !!(this.selectedOperation && (this.useDefaultResource || this.selectedRecurso));
+    // Pode avançar se tiver uma selecionada OU se houver pelo menos uma disponível para auto-seleção
+    const hasAvailable = this.operacoes.some(op => !op.encerrada);
+    return !!(this.selectedOperation || hasAvailable);
   }
 
   ngOnInit(): void {
@@ -75,14 +77,51 @@ export class ApontamentoRecursoComponent implements OnInit {
     }
   }
 
-  selectOperation(op: Operacao): void {
-    this.selectedOperation = op.operac;
-    this.useDefaultResource = true;
-    this.selectedRecurso = '';
+  hasStockBalance(): boolean {
+    const saldos = this.apontamentoService.data().apiData?.saldo_item || [];
+    if (saldos.length === 0) return true;
+    return saldos.every((item) => item.saldoEstq >= item.qtdeEmp);
+  }
+
+  isOperationDisabled(op: Operacao, index: number): boolean {
+    // Se já está encerrada, está bloqueada para novos apontamentos
+    if (op.encerrada) return true;
+    
+    // Bloqueio por falta de saldo
+    if (!this.hasStockBalance()) return true;
+    
+    // Bloqueio por sequência (estágios): só libera se a anterior estiver encerrada
+    for (let i = 0; i < index; i++) {
+      if (!this.operacoes[i].encerrada) return true;
+    }
+    
+    return false;
+  }
+
+  selectOperation(op: Operacao, index: number): void {
+    // Se a operação já está encerrada, apenas abre os detalhes para visualização
     if (op.encerrada) {
       this.selectedOpDetails = op;
       this.opDetailsSheet.open();
+      return;
     }
+
+    // Se estiver bloqueada por outros motivos (sequência ou saldo)
+    if (this.isOperationDisabled(op, index)) {
+      this.notification.warning('Esta operação está bloqueada por sequência (estágio anterior pendente) ou falta de saldo.');
+      return;
+    }
+
+    if (this.selectedOperation !== op.operac) {
+      this.apontamentoService.resetTimer();
+    }
+    
+    this.selectedOperation = op.operac;
+    this.useDefaultResource = true;
+    this.selectedRecurso = '';
+
+    // Avança automaticamente ao clicar no card
+    setTimeout(() => this.handleNext(), 100);
   }
 
   getDefaultResource(): string {
@@ -91,29 +130,75 @@ export class ApontamentoRecursoComponent implements OnInit {
   }
 
   handleNext(): void {
-    if (!this.canProceed) return;
+    // Se não selecionou nada manualmente, tenta pegar a primeira disponível
+    if (!this.selectedOperation) {
+      const nextAvailable = this.operacoes.find(op => !op.encerrada);
+      if (nextAvailable) {
+        this.selectedOperation = nextAvailable.operac;
+      }
+    }
+
+    if (!this.canProceed || !this.selectedOperation) {
+      this.notification.warning('Por favor, selecione uma operação para continuar.');
+      return;
+    }
+
+    const opIndex = this.operacoes.findIndex((o) => o.operac === this.selectedOperation);
+    const op = this.operacoes[opIndex];
+    const isOpTotalEncerrada = this.apontamentoService.data().apiData?.status === 'Enc. Total';
+
+    if (isOpTotalEncerrada) {
+      this.apontamentoService.updateData({
+        operation: this.selectedOperation,
+        resource: this.useDefaultResource ? this.getDefaultResource() : this.selectedRecurso,
+      });
+      this.router.navigate(['/apontamento/resumo']);
+      return;
+    }
+
+    if (op && op.encerrada) {
+      this.notification.error('Esta operação já está encerrada.');
+      return;
+    }
+
+    if (op && this.isOperationDisabled(op, opIndex)) {
+      this.notification.error('Esta operação está bloqueada por sequência ou falta de saldo.');
+      return;
+    }
+
     this.apontamentoService.updateData({
       operation: this.selectedOperation,
       resource: this.useDefaultResource ? this.getDefaultResource() : this.selectedRecurso,
     });
-    this.apontamentoService.startTimer();
+
     this.router.navigate(['/apontamento/quantidade']);
   }
 
   goBack(): void {
-    this.router.navigate(['/apontamento']);
+    this.router.navigate(['/apontamento/login']);
   }
 
-  formatDate(dateStr: string | undefined): string {
-    if (!dateStr) return '';
-    const clean = dateStr.replace(/\//g, '').trim();
-    if (clean.length === 8 && /^\d+$/.test(clean)) {
-      return `${clean.substring(6, 8)}/${clean.substring(4, 6)}/${clean.substring(0, 4)}`;
-    }
-    return dateStr;
+  formatDate(date: string | undefined): string {
+    if (!date) return '-';
+    const year = date.substring(0, 4);
+    const month = date.substring(4, 6);
+    const day = date.substring(6, 8);
+    return `${day}/${month}/${year}`;
+  }
+
+  // Helpers para o Sheet de Saldo
+  getStockProgress(saldo: number, empenho: number): number {
+    if (empenho <= 0) return 100;
+    return Math.min((saldo / empenho) * 100, 100);
+  }
+
+  getProgressColorClass(saldo: number, empenho: number): string {
+    if (saldo >= empenho) return 'progress-fill--ok';
+    if (saldo > 0) return 'progress-fill--warning';
+    return 'progress-fill--error';
   }
 
   onStepClick(step: number): void {
-    if (step === 1) this.router.navigate(['/apontamento']);
+    if (step === 1) this.router.navigate(['/apontamento/login']);
   }
 }

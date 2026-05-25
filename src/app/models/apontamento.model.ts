@@ -52,6 +52,17 @@ export interface SaldoItem {
   status: boolean;
 }
 
+export interface HistoricoNF {
+  filial: string;
+  op: string;
+  seq: string;
+  nf: string;
+  qtd: number;
+  dtEmiss: string;
+  codOper: string;
+  nomeOp: string;
+}
+
 export interface OPApiData {
   status: string;
   op: string;
@@ -74,15 +85,18 @@ export interface OPApiData {
   opTerceiro: string;
   nf?: string;
   armazem?: string;
+  filial?: string;
   operacoes: Operacao[];
   saldo_item: SaldoItem[];
   roteiro?: Record<string, Operacao[]>;
+  historico_nf?: HistoricoNF[];
 }
 
 export interface ApontamentoData {
   opNumber: string;
   operatorCode: string;
   operatorName?: string;
+  operatorFilial?: string;
   operatorPassword?: string;
   operation: string;
   resource: string;
@@ -156,4 +170,39 @@ export interface ApontamentoApiResponse<T = unknown> {
   data?: T;
   error?: string;
   status?: number;
+}
+
+export interface CtrlTempoData {
+  ZT_COD: string;
+  ZT_OP: string;
+  ZT_RECURSO: string;
+  ZT_OPER: string;
+  ZT_PRVFIM: string;
+  ZT_EVENTO: string;
+  ZT_DATA: string;
+  ZT_HORA: string;
+  ZT_MOTIVO: string;
+  ZT_CODPER: string;
+  ZT_NOME: string;
+  ZT_STATUS: string;
+  ZT_FILIAL: string;
+  B1_DESCPRD?: string;
+  ZT_QUANT?: number;
+  ZT_PRQUANT?: number;
+}
+
+export interface CtrlTempoPayload {
+  ZT_OP: string;
+  ZT_COD: string; // Codigo do Produto
+  ZT_RECURSO: string;
+  ZT_OPER: string;
+  ZT_PRVFIM: string;
+  ZT_EVENTO: string;
+  ZT_MOTIVO?: string;
+  ZT_CODPER: string;
+  ZT_NOME: string;
+  ZT_STATUS: string;
+  ZT_TEMPO_EFETIVO?: number;
+  ZT_QUANT?: number;
+  ZT_PRQUANT?: number;
 }

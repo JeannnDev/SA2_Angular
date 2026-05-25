@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { ApontamentoApiService } from './apontamento-api.service';
-import { ApontamentoData, OPApiData, Operacao } from '../models/apontamento.model';
+import { ApontamentoData, OPApiData, Operacao, CtrlTempoData, CtrlTempoPayload } from '../models/apontamento.model';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable({
@@ -32,6 +32,7 @@ export class ApontamentoService {
   private _isApontando = signal<boolean>(false);
   private _hasApontado = signal<boolean>(false);
   private _operadores = signal<Record<string, unknown>[]>([]);
+  private _ctrlTempoHistory = signal<CtrlTempoData[]>([]);
 
   // Diálogos de estado
   private _showNoOperationsDialog = signal<boolean>(false);
@@ -62,6 +63,7 @@ export class ApontamentoService {
   readonly isApontando = this._isApontando.asReadonly();
   readonly hasApontado = this._hasApontado.asReadonly();
   readonly operadores = this._operadores.asReadonly();
+  readonly ctrlTempoHistory = this._ctrlTempoHistory.asReadonly();
   readonly showNoOperationsDialog = this._showNoOperationsDialog.asReadonly();
   readonly showError404Dialog = this._showError404Dialog.asReadonly();
   readonly error404Message = this._error404Message.asReadonly();
@@ -82,6 +84,23 @@ export class ApontamentoService {
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   });
 
+  // Status atual baseado no último evento do histórico (SZT010)
+  readonly currentTempoStatus = computed(() => {
+    const history = this._ctrlTempoHistory();
+    if (history.length === 0) return 'IDLE';
+    
+    // O histórico vem do Protheus, assumimos que o último do array é o mais recente 
+    // (ou podemos ordenar por data/hora se necessário, mas o GET costuma vir por ordem de inclusão)
+    const lastEvent = history[history.length - 1];
+    
+    switch (lastEvent.ZT_EVENTO) {
+      case 'INICIO': return 'RUNNING';
+      case 'PAUSA':  return 'PAUSED';
+      case 'FIM':    return 'FINISHED';
+      default:       return 'IDLE';
+    }
+  });
+
   constructor() {
     this.loadOperators();
   }
@@ -89,8 +108,202 @@ export class ApontamentoService {
   private loadOperators(): void {
     this.apiService.fetchOperadoresList().subscribe((operadores) => {
       this._operadores.set(operadores);
+      // -- Controle de Tempo (SZT010) --
       console.log(`[ApontamentoService] ${operadores.length} operadores carregados para cache.`);
     });
+  }
+
+  async loadCtrlTempoHistory(op?: string, oper?: string): Promise<void> {
+    const data = this._data();
+    const filters = {
+      op: op || data.opNumber,
+      oper: oper || data.operation,
+      filial: data.operatorFilial || data.apiData?.filial || ''
+    };
+    
+    console.log(`[ApontamentoService] Buscando histórico SZT010 para OP ${filters.op} / Oper ${filters.oper} / Filial ${filters.filial}`);
+    
+    try {
+      const history = await firstValueFrom(this.apiService.fetchCtrlTempo(filters));
+      
+      // setTimeout evita o erro ExpressionChangedAfterItHasBeenCheckedError
+      return new Promise<void>((resolve) => {
+        setTimeout(() => {
+          this._ctrlTempoHistory.set(history);
+          this.syncTimerWithHistory(history);
+          resolve();
+        }, 0);
+      });
+      
+    } catch (error) {
+      console.error('[ApontamentoService] Erro ao carregar histórico de tempo:', error);
+    }
+  }
+
+  async registerCtrlTempoEvent(evento: 'INICIO' | 'PAUSA' | 'FIM', motivo = '', tempoEfetivo = 0, quant = 0, prquant = 0): Promise<boolean> {
+    const data = this._data();
+    const payload: CtrlTempoPayload = {
+      ZT_OP: data.opNumber,
+      ZT_COD: data.apiData?.produto || '',
+      ZT_RECURSO: data.resource,
+      ZT_OPER: data.operation,
+      ZT_PRVFIM: data.apiData?.previsaoEntrega || data.apiData?.dtEntrega || '',
+      ZT_EVENTO: evento,
+      ZT_MOTIVO: motivo,
+      ZT_CODPER: data.operatorCode,
+      ZT_NOME: data.operatorName || '',
+      ZT_STATUS: evento === 'INICIO' ? 'I' : (evento === 'PAUSA' ? 'P' : 'F'),
+      ZT_TEMPO_EFETIVO: tempoEfetivo,
+      ZT_QUANT: quant,
+      ZT_PRQUANT: prquant
+    };
+
+    try {
+      const filial = data.operatorFilial || data.apiData?.filial || '';
+      const result = await firstValueFrom(this.apiService.postCtrlTempo(payload, filial));
+      if (result.success) {
+        this.loadCtrlTempoHistory(); // Carrega em background para não travar a navegação
+        return true;
+      } else {
+        this._genericErrorMessage.set(result.error || 'Erro ao registrar evento de tempo');
+        this._showGenericErrorDialog.set(true);
+        return false;
+      }
+    } catch (error) {
+      console.error('[ApontamentoService] Erro ao registrar evento de tempo:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Analisa o histórico e sincroniza o cronômetro local
+   */
+  private syncTimerWithHistory(history: CtrlTempoData[]): void {
+    if (history.length === 0) return;
+
+    // Ordena o histórico por data e hora por segurança
+    const sorted = [...history].sort((a, b) => {
+      const dateTimeA = a.ZT_DATA + a.ZT_HORA;
+      const dateTimeB = b.ZT_DATA + b.ZT_HORA;
+      return dateTimeA.localeCompare(dateTimeB);
+    });
+
+    // Encontra o primeiro INICIO absoluto
+    const firstInicio = sorted.find(e => e.ZT_EVENTO === 'INICIO');
+    if (!firstInicio) return;
+
+    // NOVO: Cálculo do tempo líquido (Tempo Efetivo)
+    const netSeconds = this.calculateNetProductionTime(sorted);
+    const lastEvent = sorted[sorted.length - 1];
+    
+    // Usamos setTimeout para evitar o erro NG0100: ExpressionChangedAfterItHasBeenCheckedError
+    setTimeout(() => {
+      // Sincroniza as quantidades apontadas anteriormente
+      if (lastEvent.ZT_QUANT !== undefined) {
+        this.updateData({ quantityProduced: String(lastEvent.ZT_QUANT) });
+      }
+      if (lastEvent.ZT_PRQUANT !== undefined) {
+        this.updateData({ loss: String(lastEvent.ZT_PRQUANT) });
+      }
+
+      if (lastEvent.ZT_EVENTO === 'INICIO') {
+        // Está rodando. 
+        const now = Date.now();
+        this._elapsedTime.set(netSeconds);
+        // Ajustamos o _startTime para que a diferença (now - _startTime) dê o tempo líquido atual
+        this._startTime.set(now - (netSeconds * 1000));
+        
+        this._isStarted.set(true);
+        this._isPaused.set(false);
+        this._isFinished.set(false);
+        this.startTimerInterval();
+        
+        console.log(`[TimerSync] Operação em execução. Tempo Efetivo: ${netSeconds}s`);
+      } 
+      else if (lastEvent.ZT_EVENTO === 'PAUSA') {
+        this._elapsedTime.set(netSeconds);
+        // Se pausado, o cronômetro para no tempo líquido acumulado
+        this._isStarted.set(true);
+        this._isPaused.set(true);
+        this._isFinished.set(false);
+        // Não chamamos startTimerInterval aqui para o tempo não correr na pausa
+        console.log(`[TimerSync] Operação pausada. Tempo Efetivo travado em: ${netSeconds}s`);
+      }
+      else if (lastEvent.ZT_EVENTO === 'FIM') {
+        const fEnd = this.parseSztDateTime(lastEvent.ZT_DATA, lastEvent.ZT_HORA).getTime();
+        this._elapsedTime.set(netSeconds);
+        this._startTime.set(fEnd - (netSeconds * 1000));
+        this._endTime.set(fEnd);
+        this._isStarted.set(true);
+        this._isFinished.set(true);
+        this._isPaused.set(false);
+        this.stopTimerInterval();
+        console.log(`[TimerSync] Operação finalizada. Tempo Efetivo final: ${netSeconds}s`);
+      }
+    }, 0);
+  }
+
+  /**
+   * Calcula o tempo efetivo de produção (Lead Time - Pausas) em segundos
+   */
+  calculateNetProductionTime(history: CtrlTempoData[]): number {
+    if (history.length === 0) return 0;
+
+    const sorted = [...history].sort((a, b) => {
+      const dateTimeA = a.ZT_DATA + a.ZT_HORA;
+      const dateTimeB = b.ZT_DATA + b.ZT_HORA;
+      return dateTimeA.localeCompare(dateTimeB);
+    });
+
+    const firstInicio = sorted.find(e => e.ZT_EVENTO === 'INICIO');
+    if (!firstInicio) return 0;
+
+    const firstStartTime = this.parseSztDateTime(firstInicio.ZT_DATA, firstInicio.ZT_HORA).getTime();
+    const lastEvent = sorted[sorted.length - 1];
+    
+    // O tempo de referência para o fim do cálculo é agora ou o momento do FIM se já encerrou
+    const endTime = lastEvent.ZT_EVENTO === 'FIM' 
+      ? this.parseSztDateTime(lastEvent.ZT_DATA, lastEvent.ZT_HORA).getTime() 
+      : Date.now();
+
+    const totalLeadTimeSeconds = Math.floor((endTime - firstStartTime) / 1000);
+
+    let totalPauseSeconds = 0;
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const current = sorted[i];
+      const next = sorted[i + 1];
+      
+      // Se houve uma pausa e depois um retorno (INICIO), calcula o gap
+      if (current.ZT_EVENTO === 'PAUSA' && next.ZT_EVENTO === 'INICIO') {
+        const pStart = this.parseSztDateTime(current.ZT_DATA, current.ZT_HORA).getTime();
+        const pEnd = this.parseSztDateTime(next.ZT_DATA, next.ZT_HORA).getTime();
+        totalPauseSeconds += Math.floor((pEnd - pStart) / 1000);
+      }
+    }
+
+    // Se o estado atual for PAUSA, soma a pausa que está ocorrendo agora
+    if (lastEvent.ZT_EVENTO === 'PAUSA') {
+       const pStart = this.parseSztDateTime(lastEvent.ZT_DATA, lastEvent.ZT_HORA).getTime();
+       totalPauseSeconds += Math.floor((endTime - pStart) / 1000);
+    }
+
+    const netSeconds = totalLeadTimeSeconds - totalPauseSeconds;
+    return Math.max(0, netSeconds);
+  }
+
+  private parseSztDateTime(ztData: string, ztHora: string): Date {
+    // ztData: YYYYMMDD
+    // ztHora: HH:MM ou HH:MM:SS
+    const y = parseInt(ztData.substring(0, 4));
+    const m = parseInt(ztData.substring(4, 6)) - 1;
+    const d = parseInt(ztData.substring(6, 8));
+    
+    const timeParts = ztHora.split(':');
+    const hh = parseInt(timeParts[0] || '0');
+    const mm = parseInt(timeParts[1] || '0');
+    const ss = parseInt(timeParts[2] || '0');
+    
+    return new Date(y, m, d, hh, mm, ss);
   }
 
   // ── Atualização de dados ──
@@ -145,6 +358,17 @@ export class ApontamentoService {
     this.stopTimerInterval();
   }
 
+  resetTimer(): void {
+    this.stopTimerInterval();
+    this._startTime.set(null);
+    this._endTime.set(null);
+    this._elapsedTime.set(0);
+    this._isStarted.set(false);
+    this._isFinished.set(false);
+    this._isPaused.set(false);
+    this._pausedElapsedTime.set(0);
+  }
+
   private startTimerInterval(): void {
     this.stopTimerInterval();
     this.timerInterval = setInterval(() => {
@@ -166,6 +390,8 @@ export class ApontamentoService {
   async fetchAndSetOPData(
     opNumber: string,
     showDialogs = true,
+    operatorCode?: string,
+    operatorPassword?: string
   ): Promise<{ success: boolean; skipToSummary?: boolean; isOpEncerrada?: boolean }> {
     this._isLoadingOP.set(true);
 
@@ -175,13 +401,44 @@ export class ApontamentoService {
       this.dialogsShownForCurrentOp.clear();
     }
 
-    try {
-      const result = await firstValueFrom(
-        this.apiService.fetchOPData(opNumber, this._data().operatorCode),
+    // Helper para executar a chamada e processar a resposta
+    const doFetch = async () => {
+      return firstValueFrom(
+        this.apiService.fetchOPData(
+          opNumber,
+          operatorCode || this._data().operatorCode,
+          operatorPassword || this._data().operatorPassword
+        ),
       );
+    };
+
+    try {
+      // Primeira tentativa
+      let result = await doFetch();
+
+      // Se falhou, aguarda 1.5s e tenta novamente (cold-start do Protheus)
+      if (!result.success) {
+        const errorMsg = result.error || '';
+        // Só retenta se NÃO for um erro de negócio definitivo (senha errada, OP não encontrada etc.)
+        const isDefinitiveError = errorMsg.includes('Senha incorreta')
+          || errorMsg.includes('não cadastrado como operador')
+          || errorMsg.includes('não encontrad');
+
+        if (!isDefinitiveError) {
+          console.warn('[Service] Primeira tentativa falhou, aguardando 1.5s para retry (cold-start Protheus)...');
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          result = await doFetch();
+          console.log('[Service] Resultado após retry:', result.success ? 'Sucesso' : result.error);
+        }
+      }
 
       if (!result.success) {
         const errorMessage = result.error || 'Erro ao buscar dados da OP';
+
+        if (errorMessage.includes('Senha incorreta') || errorMessage.toLowerCase().includes('senha')) {
+          this._showIncorrectPasswordDialog.set(true);
+          return { success: false };
+        }
 
         if (errorMessage.includes('não cadastrado como operador')) {
           this._showOperatorNotFoundDialog.set(true);
@@ -224,14 +481,11 @@ export class ApontamentoService {
 
       const opEncerrada = this.isOpEncerrada(opData, operacoes);
 
-      if (
-        opEncerrada &&
-        showDialogs &&
-        opData.status === 'Enc. Total' &&
-        !this.dialogsShownForCurrentOp.has('opEncerrada')
-      ) {
-        this.dialogsShownForCurrentOp.add('opEncerrada');
-        this._showOpEncTotalDialog.set(true);
+      if (opEncerrada) {
+        if (showDialogs && opData.status === 'Enc. Total' && !this.dialogsShownForCurrentOp.has('opEncerrada')) {
+          this.dialogsShownForCurrentOp.add('opEncerrada');
+          this._showOpEncTotalDialog.set(true);
+        }
         return { success: true, skipToSummary: false, isOpEncerrada: true };
       }
 
@@ -322,13 +576,12 @@ export class ApontamentoService {
   }
 
   // ── Reset ──
-  reset(redirectPath = '/apontamento'): void {
-    const current = this._data();
+  reset(redirectPath: string | null = '/apontamento/login'): void {
     this._data.set({
       opNumber: '',
-      operatorCode: current.operatorCode,
-      operatorName: current.operatorName,
-      operatorPassword: current.operatorPassword,
+      operatorCode: '',
+      operatorName: '',
+      operatorPassword: '',
       operation: '',
       resource: '',
       quantityProduced: '',
@@ -345,7 +598,9 @@ export class ApontamentoService {
     this._pausedElapsedTime.set(0);
     this._hasApontado.set(false);
     this.stopTimerInterval();
-    this.router.navigate([redirectPath]);
+    if (redirectPath) {
+      this.router.navigate([redirectPath]);
+    }
   }
 
   resetOperation(): void {

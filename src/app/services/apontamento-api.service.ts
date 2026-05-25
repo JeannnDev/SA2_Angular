@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { Observable, of, timer } from 'rxjs';
+import { map, catchError, retry, switchMap } from 'rxjs/operators';
 import { ProtheusApiService } from './protheus-api.service';
 import {
   OPApiData,
@@ -9,7 +9,9 @@ import {
   Etiqueta,
   ApontamentoPayload,
   ImpressaoPayload,
-  ApontamentoApiResponse
+  ApontamentoApiResponse,
+  CtrlTempoData,
+  CtrlTempoPayload
 } from '../models/apontamento.model';
 
 @Injectable({
@@ -21,8 +23,9 @@ export class ApontamentoApiService {
   /**
    * Busca dados da Ordem de Produção
    */
-  fetchOPData(opNumber: string, operatorCode: string): Observable<ApontamentoApiResponse<OPApiData>> {
-    return this.protheusApi.resource(`WsFuncApontamento?OP=${opNumber}&OPERADOR=${operatorCode}`)
+  fetchOPData(opNumber: string, operatorCode: string, password?: string): Observable<ApontamentoApiResponse<OPApiData>> {
+    const url = `WsFuncApontamento?OP=${opNumber}&OPERADOR=${operatorCode}${password ? '&SENHA=' + password : ''}`;
+    return this.protheusApi.resource(url)
       .get<unknown>()
       .pipe(
         map((res: unknown) => {
@@ -81,6 +84,7 @@ export class ApontamentoApiService {
             nest: (response['nest'] as number) || 0,
             quantidade: (response['quantidadeSolicitada'] as number) || 0,
             quantidadeSolicitada: (response['quantidadeSolicitada'] as number) || 0,
+            filial: (response['filial'] as string) || (response['C2_FILIAL'] as string) || (response['cFilAnt'] as string) || (response['codFilial'] as string) || '',
             previsaoIni: (response['previsaoIni'] as string) || '',
             dtEntrega: ((response['dtEntrega'] as string) || '').trim(),
             previsaoEntrega: (response['previsaoEntrega'] as string) || '',
@@ -139,13 +143,35 @@ export class ApontamentoApiService {
               : [],
             roteiro: (response['roteiro'] && typeof response['roteiro'] === 'object')
               ? response['roteiro'] as Record<string, import('../models/apontamento.model').Operacao[]>
-              : undefined
+              : undefined,
+            historico_nf: Array.isArray(response['historico_nf'])
+              ? (response['historico_nf'] as Record<string, unknown>[]).map((nf) => ({
+                  filial: nf['filial'] as string,
+                  op: nf['op'] as string,
+                  seq: nf['seq'] as string,
+                  nf: nf['nf'] as string,
+                  qtd: nf['qtd'] as number,
+                  dtEmiss: nf['dtEmiss'] as string,
+                  codOper: nf['codOper'] as string,
+                  nomeOp: nf['nomeOp'] as string
+                }))
+              : []
           };
 
           return { success: true, data: opData };
         }),
+        // Retry automático para lidar com o cold-start do Protheus.
+        // Se a primeira requisição falhar com erro de HTTP (ex: timeout de sessão),
+        // aguarda 1.5s e tenta novamente uma única vez antes de propagar o erro.
+        retry({
+          count: 1,
+          delay: (error, retryCount) => {
+            console.warn(`[API] fetchOPData falhou (tentativa ${retryCount}). Tentando novamente em 1.5s...`, error);
+            return timer(1500);
+          }
+        }),
         catchError(error => {
-          console.error('Erro ao buscar dados da OP:', error);
+          console.error('Erro ao buscar dados da OP após retry:', error);
           return of({ success: false, error: 'Erro ao buscar dados da OP' });
         })
       );
@@ -173,7 +199,7 @@ export class ApontamentoApiService {
   /**
    * Valida operador pelo cache de operadores
    */
-  validateOperador(codigo: string, senha: string, cachedOperadores: Record<string, unknown>[]): Observable<ApontamentoApiResponse<{ nome: string }>> {
+  validateOperador(codigo: string, senha: string, cachedOperadores: Record<string, unknown>[]): Observable<ApontamentoApiResponse<{ nome: string, filial: string }>> {
     const source$ = cachedOperadores && cachedOperadores.length > 0
       ? of(cachedOperadores)
       : this.fetchOperadoresList();
@@ -217,7 +243,16 @@ export class ApontamentoApiService {
           ''
         ).toString().trim();
 
-        return { success: true, data: { nome } };
+        const filial = (
+          operadorEncontrado['Filial'] ||
+          operadorEncontrado['FILIAL'] ||
+          operadorEncontrado['filial'] ||
+          operadorEncontrado['CodFilial'] ||
+          ''
+        ).toString().trim();
+
+        console.log(`[API] Operador validado: ${nome} (Filial: ${filial})`);
+        return { success: true, data: { nome, filial } };
       })
     );
   }
@@ -330,18 +365,32 @@ export class ApontamentoApiService {
     console.log('====================================================');
 
     return this.protheusApi.resource('WSAPONTAPRODUCAO')
-      .post<unknown>('', jsonString)
+      .post<string>('', jsonString, { responseType: 'text' })
       .pipe(
-        map((response: unknown) => {
-          const raw = response as Record<string, unknown>;
+        // Retry logic: if fails, wait 1.5s and try once more
+        catchError(() => {
+          console.warn('[API] Falha no envio, tentando novamente em 1.5s...');
+          return timer(1500).pipe(
+            switchMap(() => this.protheusApi.resource('WSAPONTAPRODUCAO').post<string>('', jsonString, { responseType: 'text' }))
+          );
+        }),
+        map((response: string) => {
+          let data: unknown;
+          try {
+            data = JSON.parse(response);
+          } catch {
+            data = { success: true, message: response };
+          }
+
+          const raw = data as Record<string, unknown>;
           if (raw['status'] === false || raw['success'] === false) {
             const errorMessage = (raw['response'] as Record<string, unknown>)?.['errorMessage'] as string ||
               raw['response'] as string ||
               raw['error'] as string ||
               'Erro ao apontar produção';
-            return { success: false, error: errorMessage, data: response };
+            return { success: false, error: errorMessage, data: data };
           }
-          return { success: true, data: response };
+          return { success: true, data: data };
         }),
         catchError(error => {
           console.error('Erro ao apontar produção:', error);
@@ -375,16 +424,30 @@ export class ApontamentoApiService {
   }
 
   /**
-   * Atualiza a NF da OP via QueryString
+   * Atualiza a NF da OP
    */
-  updateNF(op: string, nf: string): Observable<ApontamentoApiResponse> {
-    return this.protheusApi.resource(`WsFuncApontamento?OP=${op}&NF=${nf}`)
-      .post<unknown>('', {})
+  updateNF(payload: { op: string, nf: string, codOper: string, nomeOp: string, qtd: number, filial?: string }): Observable<ApontamentoApiResponse> {
+    console.log('[API] Enviando atualização de NF (Path Params + QueryString):', payload);
+    
+    const filial = payload.filial || '01';
+    const encodedNome = encodeURIComponent(payload.nomeOp);
+    
+    // WSSYNTAX: "/WsFuncApontamento/{OP}/{NF}/{CODOPER}/{NOMEOP}/"
+    // Adicionamos FILIAL e QTD na QueryString para o Protheus ler via ::FILIAL e ::QTD
+    const path = `/${payload.op}/${payload.nf}/${payload.codOper}/${encodedNome}/`;
+    const query = `?FILIAL=${filial}&QTD=${payload.qtd}`;
+    
+    return this.protheusApi.resource('WsFuncApontamento')
+      .post<unknown>(path + query, payload)
       .pipe(
         map((response: unknown) => {
+          console.log('[API] Resposta da atualização de NF:', response);
           const raw = response as Record<string, unknown>;
-          if (raw['status'] === false || raw['success'] === false) {
-            const errorMessage = (raw['response'] as Record<string, unknown>)?.['errorMessage'] as string ||
+          if (raw['status'] === false || raw['success'] === false || raw['status'] === 'erro') {
+            const errorMessage = 
+              raw['mensagem'] as string || 
+              raw['errorMessage'] as string || 
+              (raw['response'] as Record<string, unknown>)?.['errorMessage'] as string ||
               raw['response'] as string ||
               'Erro ao atualizar NF';
             return { success: false, error: errorMessage };
@@ -394,6 +457,72 @@ export class ApontamentoApiService {
         catchError(error => {
           console.error('Erro ao atualizar NF:', error);
           return of({ success: false, error: error.message || 'Erro ao atualizar NF' });
+        })
+      );
+  }
+
+  /**
+   * Busca registros de controle de tempo (SZT010)
+   */
+  fetchCtrlTempo(filters: { op?: string, oper?: string, filial?: string } = {}): Observable<CtrlTempoData[]> {
+    let params = '';
+    const queryParts: string[] = [];
+    if (filters.op) queryParts.push(`cOP=${filters.op}`);
+    if (filters.oper) queryParts.push(`cOper=${filters.oper}`);
+    if (filters.filial) queryParts.push(`filial=${filters.filial}`);
+
+    if (queryParts.length > 0) {
+      params = '?' + queryParts.join('&');
+    }
+
+    const fullUrl = `WsCtrlTempo${params}`;
+    console.log(`[ApontamentoApiService] Chamando GET: ${fullUrl}`);
+
+    return this.protheusApi.resource(fullUrl)
+      .get<unknown>()
+      .pipe(
+        map((response: unknown) => {
+          const raw = response as Record<string, unknown>;
+          
+          // Novo padrão: { status: 'sucesso', dados: [...] }
+          if (raw?.['status'] === 'sucesso' && Array.isArray(raw['dados'])) {
+            return raw['dados'] as CtrlTempoData[];
+          }
+
+          // Se for uma resposta de erro ou vazia do ADVPL
+          if (raw?.['status'] === 'vazio') return [];
+
+          // Legado ou Fallback: Se for o array de dados direto
+          if (Array.isArray(response)) return response as CtrlTempoData[];
+
+          return [];
+        }),
+        catchError(error => {
+          console.error('Erro ao buscar controle de tempo:', error);
+          return of([]);
+        })
+      );
+  }
+
+  /**
+   * Inclui novo evento no controle de tempo (SZT010)
+   */
+  postCtrlTempo(payload: CtrlTempoPayload, filial = ''): Observable<ApontamentoApiResponse<CtrlTempoData>> {
+    const query = filial ? `?filial=${filial}` : '';
+
+    return this.protheusApi.resource(`WsCtrlTempo${query}`)
+      .post<unknown>('', payload)
+      .pipe(
+        map((response: unknown) => {
+          const raw = response as Record<string, unknown>;
+          if (raw['status'] === 'erro') {
+            return { success: false, error: (raw['mensagem'] as string) || 'Erro ao registrar evento' };
+          }
+          return { success: true, data: response as CtrlTempoData };
+        }),
+        catchError(error => {
+          console.error('Erro ao registrar evento de tempo:', error);
+          return of({ success: false, error: error.message || 'Erro de conexão' });
         })
       );
   }
