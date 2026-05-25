@@ -1,257 +1,241 @@
-<div class="wizard-container">
-  <aside class="wizard-sidebar">
-    <app-apontamento-step-indicator
-      [currentStep]="2"
-      [totalSteps]="4"
-      (stepClick)="onStepClick($event)"
-    >
-    </app-apontamento-step-indicator>
-  </aside>
-
-  <div class="wizard-content">
-    <div class="page-info-bar">
-      <div class="page-info-bar__item">
-        <span class="page-info-bar__label">OP</span>
-        <strong class="page-info-bar__value">{{ apontamentoService.data().opNumber }}</strong>
-      </div>
-      <div class="page-info-bar__divider"></div>
-      <div class="page-info-bar__item">
-        <span class="page-info-bar__label">Roteiro</span>
-        <strong class="page-info-bar__value">{{
-          apontamentoService.data().apiData?.roteiroUtilizado || '-'
-        }}</strong>
-      </div>
-      <div class="page-info-bar__divider"></div>
-      <div class="page-info-bar__item">
-        <span class="page-info-bar__label"
-          >Operador <po-icon p-icon="an an-qr-code"></po-icon
-        ></span>
-        <strong class="page-info-bar__value">{{
-          apontamentoService.data().operatorName || '-'
-        }}</strong>
-      </div>
-    </div>
-
-    <div class="product-card">
-      <div class="product-card__header">
-        <div>
-          <span class="product-card__label"
-            >PRODUTO:
-            <strong class="product-card__code">{{
-              apontamentoService.data().apiData?.produto
-            }}</strong>
-          </span>
-          <p class="product-card__desc">{{ apontamentoService.data().apiData?.descProduto }}</p>
-        </div>
-      </div>
-      <div class="product-card__stats">
-        <div class="stat-box">
-          <span class="stat-box__label">Quantidade</span>
-          <strong class="stat-box__value">{{
-            apontamentoService.data().apiData?.quantidade
-          }}</strong>
-        </div>
-        <div class="stat-box">
-          <span class="stat-box__label">Prev. Inicial</span>
-          <strong class="stat-box__value">{{
-            formatDate(apontamentoService.data().apiData?.previsaoIni)
-          }}</strong>
-        </div>
-        <div class="stat-box">
-          <span class="stat-box__label">Prev. Entrega</span>
-          <strong class="stat-box__value">{{
-            formatDate(apontamentoService.data().apiData?.previsaoEntrega)
-          }}</strong>
-        </div>
-        <div class="stat-box stat-box--action">
-          <po-button
-            p-label="Ver Saldo"
-            p-kind="primary"
-            p-icon="an an-eye"
-            (p-click)="saldoSheet.open()"
-          ></po-button>
-        </div>
-      </div>
-    </div>
-
-    <div class="ops-container">
-      <div class="ops-container__header">
-        <div class="ops-container__title-wrap">
-          <po-icon p-icon="an an-gear"></po-icon>
-          <h2 class="ops-container__title">Selecione a Operação</h2>
-        </div>
-        <span class="ops-container__total"
-          >Total no Roteiro: <strong>{{ operacoes.length }}</strong></span
-        >
-      </div>
-
-      <div class="ops-grid">
-        @for (op of operacoes; track op; let i = $index) {
-          <div
-            class="op-card"
-            tabindex="0"
-            [class.op-card--selected]="selectedOperation === op.operac"
-            [class.op-card--done]="op.encerrada"
-            (click)="selectOperation(op)"
-            (keyup.enter)="selectOperation(op)"
-          >
-            <span class="op-card__badge">{{ i + 1 }}/{{ operacoes.length }}</span>
-            <div class="op-card__icon" [class.op-card__icon--done]="op.encerrada">
-              <po-icon [p-icon]="op.encerrada ? 'an an-check' : 'an an-clock'"></po-icon>
-            </div>
-            <h3 class="op-card__name">{{ op.operac }} - {{ op.descricao }}</h3>
-            <span class="op-card__status">{{ op.encerrada ? 'Concluída' : 'Pendente' }}</span>
-            @if (op.encerrada) {
-              <div class="op-card__bar"></div>
-            }
-          </div>
-        }
-      </div>
-    </div>
-
-    <div class="page-footer">
-      <po-button p-label="Voltar" class="btn-back" (p-click)="goBack()"></po-button>
-      <po-button
-        p-label="Avançar"
-        p-kind="primary"
-        class="btn-next"
-        [p-disabled]="!canProceed"
-        (p-click)="handleNext()"
+<po-page-default>
+  <div class="wizard-container">
+    <aside class="wizard-sidebar">
+      <app-apontamento-step-indicator
+        [currentStep]="2"
+        [totalSteps]="4"
+        [blockedSteps]="apontamentoService.data().apiData?.status === 'Enc. Total' ? [3] : []"
+        (stepClick)="onStepClick($event)"
       >
-      </po-button>
+      </app-apontamento-step-indicator>
+    </aside>
+
+    <div class="wizard-content">
+      <div class="page-info-bar">
+        <div class="page-info-bar__item">
+          <span class="page-info-bar__label">OP</span>
+          <strong class="page-info-bar__value">{{ apontamentoService.data().opNumber }}</strong>
+        </div>
+        <div class="page-info-bar__divider"></div>
+        <div class="page-info-bar__item">
+          <span class="page-info-bar__label">Roteiro</span>
+          <strong class="page-info-bar__value">{{
+            apontamentoService.data().apiData?.roteiroUtilizado || '-'
+          }}</strong>
+        </div>
+        <div class="page-info-bar__divider"></div>
+        <div class="page-info-bar__item">
+          <span class="page-info-bar__label"
+            >Operador <po-icon p-icon="an an-qr-code"></po-icon
+          ></span>
+          <strong class="page-info-bar__value">{{
+            apontamentoService.data().operatorName || '-'
+          }}</strong>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="product-card__header">
+          <div>
+            <span class="product-card__label"
+              >PRODUTO:
+              <strong class="product-card__code">{{
+                apontamentoService.data().apiData?.produto
+              }}</strong>
+            </span>
+            <p class="product-card__desc">{{ apontamentoService.data().apiData?.descProduto }}</p>
+          </div>
+        </div>
+        <div class="product-card__stats">
+          <div class="stat-box">
+            <span class="stat-box__label">Quantidade</span>
+            <strong class="stat-box__value">{{
+              apontamentoService.data().apiData?.quantidade
+            }}</strong>
+          </div>
+          <div class="stat-box">
+            <span class="stat-box__label">Prev. Inicial</span>
+            <strong class="stat-box__value">{{
+              formatDate(apontamentoService.data().apiData?.previsaoIni)
+            }}</strong>
+          </div>
+          <div class="stat-box">
+            <span class="stat-box__label">Prev. Entrega</span>
+            <strong class="stat-box__value">{{
+              formatDate(apontamentoService.data().apiData?.previsaoEntrega)
+            }}</strong>
+          </div>
+          <div class="stat-box stat-box--action">
+            <po-button
+              p-label="Ver Saldo"
+              p-kind="primary"
+              p-icon="an an-eye"
+              (p-click)="saldoSheet.open()"
+            ></po-button>
+          </div>
+        </div>
+      </div>
+
+      <div class="ops-container">
+        <div class="ops-container__header">
+          <div class="ops-container__title-wrap">
+            <po-icon p-icon="an an-gear"></po-icon>
+            <h2 class="ops-container__title">Selecione a Operação</h2>
+          </div>
+          <span class="ops-container__total"
+            >Total no Roteiro: <strong>{{ operacoes.length }}</strong></span
+          >
+        </div>
+
+        <div class="ops-grid">
+          @for (op of operacoes; track op; let i = $index) {
+            <div
+              class="op-card"
+              tabindex="0"
+              [class.op-card--selected]="selectedOperation === op.operac"
+              [class.op-card--done]="op.encerrada"
+              [class.op-card--disabled]="isOperationDisabled(op, i)"
+              (click)="selectOperation(op, i)"
+              (keyup.enter)="selectOperation(op, i)"
+            >
+              <span class="op-card__badge">{{ op.quantidadeProduzida }}/{{ op.quantidadeSolicitada }}</span>
+              <div class="op-card__icon" [class.op-card__icon--done]="op.encerrada">
+                @if (op.encerrada) {
+                  <po-icon p-icon="an an-check-circle"></po-icon>
+                } @else if (isOperationDisabled(op, i)) {
+                  <po-icon p-icon="an an-lock-simple"></po-icon>
+                } @else {
+                  <po-icon p-icon="an an-clock"></po-icon>
+                }
+              </div>
+              <h3 class="op-card__name">{{ op.operac }} - {{ op.descricao }}</h3>
+              <span class="op-card__status">
+                {{ op.encerrada ? 'Concluída' : (isOperationDisabled(op, i) ? 'Bloqueada' : 'Disponível') }}
+              </span>
+              @if (op.encerrada) {
+                <div class="op-card__bar"></div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="page-footer">
+        <po-button p-label="Voltar" class="btn-back" (p-click)="goBack()"></po-button>
+        <po-button
+          p-label="Avançar"
+          p-kind="primary"
+          class="btn-next"
+          [p-disabled]="!canProceed"
+          (p-click)="handleNext()"
+        >
+        </po-button>
+      </div>
     </div>
   </div>
-</div>
+</po-page-default>
 
-<po-page-slide #saldoSheet p-title="Dados do Saldo" p-size="md">
-  <div class="po-p-2">
-    <div class="po-row po-mt-2">
-      @for (saldo of apontamentoService.data().apiData?.saldo_item; track saldo) {
-        <div class="po-md-12 po-mb-2">
-          <po-widget>
-            <div class="po-row">
-              <po-info class="po-md-6" p-label="Produto" [p-value]="saldo.produto"></po-info>
-              <po-info class="po-md-6" p-label="Unidade" [p-value]="saldo.um"></po-info>
-            </div>
-            <po-divider></po-divider>
-            <div class="po-row">
-              <po-info
-                class="po-md-12"
-                p-label="Descrição"
-                [p-value]="apontamentoService.data().apiData?.descProduto || '-'"
-              ></po-info>
-            </div>
-            <po-divider></po-divider>
-            <div class="po-row">
-              <po-info
-                class="po-md-6"
-                p-label="Quantidade Empenho"
-                [p-value]="saldo.qtdeEmp.toString()"
-              ></po-info>
-              <po-info
-                class="po-md-6"
-                p-label="Saldo Estoque"
-                [p-value]="saldo.saldoEstq.toString()"
-              ></po-info>
-            </div>
-            <po-divider></po-divider>
-            <div class="po-row">
-              <po-info class="po-md-6" p-label="Armazém" [p-value]="saldo.armz"></po-info>
-              <po-info
-                class="po-md-6"
-                p-label="Endereço"
-                [p-value]="saldo.endereco || 'GERAL'"
-              ></po-info>
-            </div>
-            <div class="po-row po-mt-2">
-              <div class="po-md-12 po-text-center">
-                <po-tag p-value="Disponível" p-color="color-11"></po-tag>
-              </div>
-            </div>
-          </po-widget>
+<po-page-slide #saldoSheet p-title="Materiais Empenhados" p-size="md" [p-click-out]="true">
+  <div class="sheet-content">
+    @for (saldo of apontamentoService.data().apiData?.saldo_item; track saldo) {
+      <div class="balance-card">
+        <div class="balance-header">
+          <h3 class="balance-title">{{ saldo.produto }}</h3>
+          <p class="balance-desc">{{ saldo.descricao || 'Descrição não informada' }}</p>
         </div>
-      }
-    </div>
+
+        <div class="balance-metrics">
+          <div class="metric-item">
+            <span class="metric-label">Empenho</span>
+            <span class="metric-value">{{ saldo.qtdeEmp }} <small>{{ saldo.um }}</small></span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Estoque</span>
+            <span class="metric-value" [style.color]="saldo.saldoEstq < saldo.qtdeEmp ? '#ef4444' : '#10b981'">
+              {{ saldo.saldoEstq }} <small>{{ saldo.um }}</small>
+            </span>
+          </div>
+        </div>
+
+        <div class="balance-footer">
+          <div class="location-tag">
+            <po-icon p-icon="an an-package"></po-icon>
+            {{ saldo.armz }} - {{ saldo.endereco || 'GERAL' }}
+          </div>
+          
+          @if (saldo.saldoEstq >= saldo.qtdeEmp) {
+            <po-tag p-value="Disponível" p-color="color-11"></po-tag>
+          } @else {
+            <po-tag p-value="Faltante" p-color="color-07"></po-tag>
+          }
+        </div>
+      </div>
+    }
   </div>
 </po-page-slide>
 
-<po-page-slide #opDetailsSheet p-title="Detalhes da Operação" p-size="md">
+<po-page-slide #opDetailsSheet p-title="Detalhes da Operação" p-size="md" [p-click-out]="true">
   @if (selectedOpDetails) {
-    <div class="po-p-2">
-      <po-widget class="po-mb-2">
-        <div class="po-row">
-          <po-info
-            class="po-md-6"
-            p-label="Operação"
-            [p-value]="selectedOpDetails.operac"
-          ></po-info>
-          <po-info
-            class="po-md-6"
-            p-label="Recurso"
-            [p-value]="selectedOpDetails.recurso"
-          ></po-info>
+    <div class="sheet-content">
+      <!-- Card Principal -->
+      <div class="premium-card">
+        <div class="info-grid-custom">
+          <div class="info-block">
+            <span class="info-block__label"><po-icon p-icon="an an-hash"></po-icon> Operação</span>
+            <span class="info-block__value">{{ selectedOpDetails.operac }}</span>
+          </div>
+          <div class="info-block">
+            <span class="info-block__label"><po-icon p-icon="an an-factory"></po-icon> Recurso</span>
+            <span class="info-block__value">{{ selectedOpDetails.recurso }}</span>
+          </div>
+          <div class="info-block full-width">
+            <span class="info-block__label"><po-icon p-icon="an an-info"></po-icon> Descrição</span>
+            <span class="info-block__value info-block__value--highlight">{{ selectedOpDetails.descricao }}</span>
+          </div>
         </div>
-        <po-divider></po-divider>
-        <div class="po-row">
-          <po-info
-            class="po-md-12"
-            p-label="Descrição"
-            [p-value]="selectedOpDetails.descricao"
-          ></po-info>
-        </div>
-      </po-widget>
-      <h3 class="po-font-subtitle po-mb-1">Apontamentos Realizados</h3>
-      @if (selectedOpDetails.historico && selectedOpDetails.historico.length > 0) {
-        <div>
+      </div>
+
+      <!-- Seção de Histórico -->
+      <div class="history-section">
+        <h3 class="section-subtitle">
+          <po-icon p-icon="an an-clock-counter-clockwise"></po-icon>
+          Apontamentos Realizados
+        </h3>
+
+        @if (selectedOpDetails.historico && selectedOpDetails.historico.length > 0) {
           @for (hist of selectedOpDetails.historico; track hist) {
-            <po-widget class="po-mb-2">
-              <div class="po-row">
-                <po-info
-                  class="po-md-6"
-                  p-label="Operador"
-                  [p-value]="hist.operadorNome || '-'"
-                ></po-info>
-                <po-info
-                  class="po-md-6"
-                  p-label="Código"
-                  [p-value]="hist.operadorCod || '-'"
-                ></po-info>
+            <div class="history-card">
+              <div class="history-card__header">
+                <div class="history-card__operator">
+                  <span class="history-card__name">{{ hist.operadorNome || 'Operador Desconhecido' }}</span>
+                  <span class="history-card__code">ID: {{ hist.operadorCod || '-' }}</span>
+                </div>
+                <po-tag [p-value]="hist.qtdProd + ' Prod.'" p-color="color-11"></po-tag>
               </div>
-              <po-divider></po-divider>
-              <div class="po-row">
-                <po-info
-                  class="po-md-6"
-                  p-label="Início"
-                  [p-value]="formatDate(hist.dtIni) + ' às ' + hist.hrIni"
-                ></po-info>
-                <po-info
-                  class="po-md-6"
-                  p-label="Término"
-                  [p-value]="formatDate(hist.dtFim) + ' às ' + hist.hrFim"
-                ></po-info>
+
+              <div class="history-card__stats">
+                <div class="info-block">
+                  <span class="info-block__label">Início</span>
+                  <span class="info-block__value" style="font-size: 13px;">
+                    {{ formatDate(hist.dtIni) }} <small>{{ hist.hrIni }}</small>
+                  </span>
+                </div>
+                <div class="info-block">
+                  <span class="info-block__label">Término</span>
+                  <span class="info-block__value" style="font-size: 13px;">
+                    {{ formatDate(hist.dtFim) }} <small>{{ hist.hrFim }}</small>
+                  </span>
+                </div>
               </div>
-              <po-divider></po-divider>
-              <div class="po-row">
-                <po-info
-                  class="po-md-6"
-                  p-label="Qtd. Produzida"
-                  [p-value]="hist.qtdProd.toString()"
-                ></po-info>
-                <po-info
-                  class="po-md-6"
-                  p-label="Qtd. Perdida"
-                  [p-value]="hist.qtdPerd.toString()"
-                ></po-info>
-              </div>
-            </po-widget>
+            </div>
           }
-        </div>
-      } @else {
-        <div class="po-text-center po-p-4">
-          <po-icon p-icon="an an-info" style="font-size: 32px; color: #94a3b8"></po-icon>
-          <p>Nenhum histórico de apontamento para esta operação.</p>
-        </div>
-      }
+        } @else {
+          <div class="po-text-center po-p-4 po-mt-4" style="background: #f1f5f9; border-radius: 12px; border: 2px dashed #cbd5e1;">
+            <po-icon p-icon="an an-files" style="font-size: 32px; color: #94a3b8"></po-icon>
+            <p style="color: #64748b; margin-top: 8px;">Nenhum histórico para esta operação.</p>
+          </div>
+        }
+      </div>
     </div>
   }
 </po-page-slide>

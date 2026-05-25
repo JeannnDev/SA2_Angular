@@ -1,7 +1,7 @@
 import { Component, OnInit, ViewChild, inject, ChangeDetectorRef } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import {
   PoModule,
   PoModalComponent,
@@ -12,23 +12,26 @@ import { ApontamentoService } from '../../../services/apontamento.service';
 import { ApontamentoApiService } from '../../../services/apontamento-api.service';
 import { ApontamentoStepIndicatorComponent } from '../step-indicator/apontamento-step-indicator.component';
 import { NumericKeyboardComponent } from '../numeric-keyboard/numeric-keyboard.component';
+import { PasswordKeyboardComponent } from '../password-keyboard/password-keyboard.component';
 import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-apontamento-login',
   standalone: true,
-  imports: [FormsModule, PoModule, ApontamentoStepIndicatorComponent, NumericKeyboardComponent],
+  imports: [FormsModule, PoModule, ApontamentoStepIndicatorComponent, NumericKeyboardComponent, PasswordKeyboardComponent],
   templateUrl: './apontamento-login.html',
   styleUrls: ['./apontamento-login.css'],
 })
 export class ApontamentoLoginComponent implements OnInit {
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   public apontamentoService = inject(ApontamentoService);
   private apiService = inject(ApontamentoApiService);
   private notification = inject(PoNotificationService);
   private cdr = inject(ChangeDetectorRef);
 
   @ViewChild('keyboardModal') keyboardModal!: PoModalComponent;
+  @ViewChild('passwordModal') passwordModal!: PoModalComponent;
   @ViewChild('scannerModal') scannerModal!: PoModalComponent;
   @ViewChild('operatorNotFoundModal') operatorNotFoundModal!: PoModalComponent;
   @ViewChild('incorrectPasswordModal') incorrectPasswordModal!: PoModalComponent;
@@ -44,6 +47,8 @@ export class ApontamentoLoginComponent implements OnInit {
   errorMessage = '';
   activeField: 'op' | 'operator' | 'password' | null = null;
   scannerSimulatorValue = '';
+  showKeyboard = false;
+  showPasswordKeyboard = false;
 
   operatorNotFoundAction: PoModalAction = {
     label: 'Entendi',
@@ -71,18 +76,29 @@ export class ApontamentoLoginComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    const isReloaded = sessionStorage.getItem('apontamento_login_reloaded');
-    if (!isReloaded) {
-      sessionStorage.setItem('apontamento_login_reloaded', 'true');
-      this.apontamentoService.reset('/apontamento');
-      window.location.reload();
+    const returnUrl = this.route.snapshot.queryParams['returnUrl'];
+    const data = this.apontamentoService.data();
+
+    // Se já está logado e tem returnUrl, pode ir direto
+    if (data.operatorCode && returnUrl) {
+      this.router.navigate([returnUrl]);
       return;
     }
-    sessionStorage.removeItem('apontamento_login_reloaded');
-    this.opNumber = '';
-    this.operatorCode = '';
-    this.operatorPassword = '';
-    this.isOperatorConfirmed = false;
+
+    // Se NÃO tem returnUrl, limpa o estado (padrão antigo)
+    if (!returnUrl) {
+      this.apontamentoService.reset(null);
+      this.opNumber = '';
+      this.operatorCode = '';
+      this.operatorPassword = '';
+      this.isOperatorConfirmed = false;
+    } else {
+      // Se TEM returnUrl mas não está logado, preenche o que tiver
+      this.opNumber = data.opNumber || '';
+      this.operatorCode = data.operatorCode || '';
+      this.operatorPassword = data.operatorPassword || '';
+      this.isOperatorConfirmed = !!this.operatorCode;
+    }
   }
 
   onOpEnter(): void {
@@ -163,7 +179,20 @@ export class ApontamentoLoginComponent implements OnInit {
       this.scannerSimulatorValue = '';
       this.scannerModal.open();
     } else {
-      this.keyboardModal.open();
+      this.showKeyboard = true;
+    }
+    this.cdr.detectChanges();
+  }
+
+  openPasswordKeyboard(): void {
+    this.showPasswordKeyboard = true;
+    this.cdr.detectChanges();
+  }
+
+  onPasswordKeyboardConfirm(): void {
+    this.showPasswordKeyboard = false;
+    if (this.operatorPassword?.trim()) {
+      this.handleNext();
     }
   }
 
@@ -192,6 +221,19 @@ export class ApontamentoLoginComponent implements OnInit {
     }
   }
 
+  getActiveFieldLabel(): string {
+    switch (this.activeField) {
+      case 'op':
+        return 'Ordem de Produção';
+      case 'operator':
+        return 'Código do Operador';
+      case 'password':
+        return 'Senha do Operador';
+      default:
+        return 'Informe o valor';
+    }
+  }
+
   onKeyboardValueChange(value: string): void {
     switch (this.activeField) {
       case 'op':
@@ -207,7 +249,7 @@ export class ApontamentoLoginComponent implements OnInit {
   }
 
   onKeyboardConfirm(): void {
-    this.keyboardModal.close();
+    this.showKeyboard = false;
     if (this.activeField === 'operator' && this.operatorCode?.trim()) {
       this.isOperatorConfirmed = true;
     }
@@ -233,18 +275,30 @@ export class ApontamentoLoginComponent implements OnInit {
     }
 
     this.isValidating = true;
+    this.isLoading = true;
+
+    // Atualizamos os dados no Service
+    this.apontamentoService.updateData({
+      opNumber: this.opNumber,
+      operatorCode: this.operatorCode,
+      operatorPassword: this.operatorPassword
+    });
 
     try {
+      // 1. Validamos o operador primeiro (essencial para o nome e permissão)
       const validation = await firstValueFrom(
         this.apiService.validateOperador(
           this.operatorCode,
           this.operatorPassword,
           this.apontamentoService.operadores(),
-        ),
+        )
       );
 
       if (!validation?.success) {
         this.isValidating = false;
+        this.isLoading = false;
+        this.cdr.detectChanges();
+        
         if (validation?.error === 'Senha incorreta') {
           this.incorrectPasswordModal.open();
         } else if (validation?.error === 'Operador não encontrado') {
@@ -256,55 +310,73 @@ export class ApontamentoLoginComponent implements OnInit {
         return;
       }
 
+      // 2. Se o operador está OK, atualizamos o nome e buscamos a OP
       this.apontamentoService.updateData({
-        opNumber: this.opNumber,
-        operatorCode: this.operatorCode,
-        operatorPassword: this.operatorPassword,
         operatorName: validation.data?.nome || '',
+        operatorFilial: (validation.data as Record<string, unknown>)['filial'] as string
       });
 
-      this.isLoading = true;
+      // Primeira tentativa de buscar a OP
+      let opResult = await this.apontamentoService.fetchAndSetOPData(
+        this.opNumber,
+        true,
+        this.operatorCode,
+        this.operatorPassword
+      );
 
-      const result = await this.apontamentoService.fetchAndSetOPData(this.opNumber, true);
+      // Se falhou, aguarda 2s e tenta novamente (cold-start do Protheus)
+      // Cobre todos os casos: erros HTTP, dados incompletos, saldo vazio, etc.
+      if (!opResult.success) {
+        console.warn('[Login] 1ª tentativa falhou. Retry em 2s (cold-start Protheus)...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
-      if (result.success) {
+        // Reseta sinais de erro do service para não mostrar diálogos antigos
+        this.apontamentoService.setShowGenericErrorDialog(false);
+        this.apontamentoService.setShowError404Dialog(false);
+        this.apontamentoService.setShowSemSaldoDialog(false);
+        this.apontamentoService.setShowNoOperationsDialog(false);
+
+        opResult = await this.apontamentoService.fetchAndSetOPData(
+          this.opNumber,
+          true,
+          this.operatorCode,
+          this.operatorPassword
+        );
+        console.log('[Login] Resultado após retry:', opResult.success ? 'Sucesso ✓' : 'Falhou novamente');
+      }
+
+      if (opResult.success) {
         console.log('[Login] Sucesso na busca da OP. Verificando status...');
-        if (result.isOpEncerrada) {
-          console.warn('[Login] OP está encerrada. Liberando tela para o aviso...');
-          
-          // Forçamos o fechamento do overlay e a detecção de mudanças
+        if (opResult.isOpEncerrada) {
           this.isLoading = false;
           this.isValidating = false;
           this.cdr.detectChanges();
-          
           this.opEncerradaModal.open();
           return;
         }
-        
-        const targetPath = !result.skipToSummary ? '/apontamento/recurso' : '/apontamento/resumo';
-        console.log(`[Login] Navegando para: ${targetPath}`);
-        
-        // Pequeno delay para garantir que os Signals do Service foram propagados
-        setTimeout(() => {
-          this.router.navigate([targetPath]);
-        }, 150);
+
+        const returnUrl = this.route.snapshot.queryParams['returnUrl'];
+        const targetPath = returnUrl || (!opResult.skipToSummary ? '/apontamento/recurso' : '/apontamento/resumo');
+        this.router.navigate([targetPath]);
       } else {
-        console.error('[Login] Falha na busca da OP via Service');
-        this.isLoading = false;
-        this.isValidating = false;
-        this.cdr.detectChanges();
-        this.errorMessage = this.apontamentoService.genericErrorMessage() || 'Erro ao validar dados da OP no Protheus';
-        this.errorModal.open();
+        console.error('[Login] Ambas tentativas falharam.');
+        setTimeout(() => {
+          this.isValidating = false;
+          this.isLoading = false;
+          this.errorMessage = this.apontamentoService.genericErrorMessage() || 'Erro ao validar dados da OP no Protheus';
+          this.cdr.detectChanges();
+          this.errorModal.open();
+        }, 0);
       }
     } catch (error) {
       console.error('[Login] Erro crítico no handleNext:', error);
-      this.isValidating = false;
-      this.isLoading = false;
-      this.errorMessage = 'Erro ao processar requisição. Verifique a conexão com o Protheus.';
-      this.errorModal.open();
-    } finally {
-      this.isValidating = false;
-      this.isLoading = false;
+      setTimeout(() => {
+        this.isValidating = false;
+        this.isLoading = false;
+        this.errorMessage = 'Erro ao processar requisição. Verifique a conexão com o Protheus.';
+        this.cdr.detectChanges();
+        this.errorModal.open();
+      }, 0);
     }
   }
 
