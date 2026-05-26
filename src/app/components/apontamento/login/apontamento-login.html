@@ -151,7 +151,8 @@
   </div>
 </po-modal>
 
-@if (isValidating || isLoading) {
-<po-loading-overlay [p-screen-lock]="true" p-text="Processando dados">
+<po-loading-overlay 
+  [hidden]="!(isValidating || isLoading)"
+  [p-screen-lock]="true" 
+  p-text="Processando dados">
 </po-loading-overlay>
-}
